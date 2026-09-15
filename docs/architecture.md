@@ -160,9 +160,10 @@ Không có logic điều phối, chỉ có **dữ liệu và hợp đồng**.
 class FaceProfile:
     id: int | None
     user_id: int
-    embedding: np.ndarray      # đã L2-normalize, float32
+    embedding: np.ndarray  # đã L2-normalize, float32
     model_name: str
     created_at: datetime
+
 
 # ports.py — hợp đồng mà tầng ngoài phải thỏa mãn
 class FaceProfileRepository(ABC):
@@ -174,6 +175,7 @@ class FaceProfileRepository(ABC):
     def get(self, profile_id: int) -> FaceProfile | None: ...
     @abstractmethod
     def delete(self, profile_id: int) -> None: ...
+
 
 class FaceEmbedder(ABC):
     @abstractmethod
@@ -191,21 +193,25 @@ Nhận port qua constructor, **không tự tạo ra thứ gì có kết nối ra
 class FaceProfileService:
     def __init__(
         self,
-        profiles: FaceProfileRepository,   # ABC, không phải class SQLAlchemy
+        profiles: FaceProfileRepository,  # ABC, không phải class SQLAlchemy
         users: UserRepository,
-        embedder: FaceEmbedder,            # ABC, không phải InsightFace
+        embedder: FaceEmbedder,  # ABC, không phải InsightFace
         clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def register_face(self, user_id: int, image: bytes) -> FaceProfile:
         if self._users.get(user_id) is None:
             raise UserNotFound(user_id)
-        vector = self._embedder.embed(image)       # có thể raise NoFaceDetected
-        return self._profiles.add(FaceProfile(
-            id=None, user_id=user_id, embedding=vector,
-            model_name=self._embedder.model_name, created_at=self._clock(),
-        ))
+        vector = self._embedder.embed(image)  # có thể raise NoFaceDetected
+        return self._profiles.add(
+            FaceProfile(
+                id=None,
+                user_id=user_id,
+                embedding=vector,
+                model_name=self._embedder.model_name,
+                created_at=self._clock(),
+            )
+        )
 ```
 
 Nhờ vậy unit test chạy **không cần DB, không cần model AI, không cần HTTP** — truyền vào 2 repository giả và 1 embedder trả vector cố định là đủ.
@@ -389,15 +395,17 @@ Nếu viết `if role == admin` trong router thì mỗi endpoint mới lại ph�
 # app/api/deps.py — viết MỘT LẦN
 oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
+
 def get_current_user(
     token: str = Depends(oauth2),
     users: UserRepository = Depends(get_user_repository),
 ) -> User:
-    payload = decode_token(token)           # raise InvalidToken nếu hỏng/hết hạn
+    payload = decode_token(token)  # raise InvalidToken nếu hỏng/hết hạn
     user = users.get(int(payload["sub"]))
     if user is None:
         raise InvalidCredentials()
     return user
+
 
 def require_admin(current: User = Depends(get_current_user)) -> User:
     if current.role != Role.ADMIN:
@@ -411,7 +419,7 @@ Gắn ở **cấp router**, không phải từng handler:
 # app/api/v1/checkins.py
 router = APIRouter(
     prefix="/checkins",
-    dependencies=[Depends(get_current_user)],   # ← áp cho MỌI endpoint trong router
+    dependencies=[Depends(get_current_user)],  # ← áp cho MỌI endpoint trong router
 )
 ```
 
@@ -451,12 +459,12 @@ cosine_similarity(a, b) = dot(a, b)        vì ||a|| = ||b|| = 1
 
 ```python
 # app/services/checkin_service.py
-candidates = self._profiles.list_all()                    # N profile
-matrix = np.stack([p.embedding for p in candidates])      # (N, 512)
-scores = matrix @ query                                   # (N,) — một phép nhân ma trận
+candidates = self._profiles.list_all()  # N profile
+matrix = np.stack([p.embedding for p in candidates])  # (N, 512)
+scores = matrix @ query  # (N,) — một phép nhân ma trận
 best = int(np.argmax(scores))
 if scores[best] >= self._threshold:
-    ... # success
+    ...  # success
 ```
 
 Viết dưới dạng **một phép nhân ma trận** thay vì vòng `for` gọi `np.dot` từng cái — chênh lệch hàng chục lần, và đây đúng là đoạn code sẽ bị soi ở Pha 2.
@@ -576,47 +584,15 @@ Ca 3 là ca dễ hỏng nhất khi ai đó sửa router về sau, và là thứ 
 
 Biến "tầng nghiệp vụ không import framework" từ lời hứa thành thứ CI bắt được:
 
-```ini
-# .importlinter
-[importlinter]
-root_package = app
+Ba contract nằm ở [`.importlinter`](../.importlinter), khớp đúng bảng quy tắc phụ thuộc ở mục 3:
 
-[importlinter:contract:1]
-name = Tầng nghiệp vụ không import framework/DB
-type = forbidden
-source_modules =
-    app.services
-    app.domain
-forbidden_modules =
-    fastapi
-    starlette
-    sqlalchemy
-    alembic
-    app.api
-    app.models
-    app.repositories
-    app.schemas
+| Contract | Chặn điều gì |
+|---|---|
+| 1 | `app.services` / `app.domain` import `fastapi`, `sqlalchemy`, hay bất kỳ tầng nào bên trên |
+| 2 | Thứ tự tầng `api → services → domain` bị gọi ngược |
+| 3 | Adapter (`repositories`, `ml`) gọi ngược lên `api`/`services` |
 
-[importlinter:contract:2]
-name = Thứ tự tầng
-type = layers
-layers =
-    app.api
-    app.services
-    app.domain
-
-[importlinter:contract:3]
-name = Adapter không gọi ngược lên tầng trên
-type = forbidden
-source_modules =
-    app.repositories
-    app.ml
-forbidden_modules =
-    app.api
-    app.services
-```
-
-Chạy `lint-imports` trong CI **từ Tuần 3**. Cài từ Tuần 5 thì lúc đó đã có sẵn hàng chục vi phạm phải gỡ ngược — đúng lúc đang bận Docker và README.
+Chạy bằng `lint-imports`; đã nối vào CI ngay từ Tuần 1 và hiện **3/3 contract KEPT**. Đừng đợi tới Tuần 5 mới bật — lúc đó sẽ có sẵn hàng chục vi phạm phải gỡ ngược, đúng lúc đang bận Docker và README.
 
 *(Cân nhắc thêm `pydantic` vào contract 1: Service nên làm việc với domain entity, không phải DTO của API. Nếu thấy quá chặt thì bỏ ra, nhưng hãy ghi lý do vào ADR.)*
 

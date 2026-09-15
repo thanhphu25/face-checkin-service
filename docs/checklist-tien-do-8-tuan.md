@@ -23,39 +23,39 @@
 > Mục tiêu: chốt use-case chi tiết, ERD, khung repo 3 tầng, board quản lý việc.
 
 ### Cả nhóm
-- [ ] Xác nhận với giảng viên: Pha 2 có tráo đổi hệ thống giữa các nhóm không, có giới hạn cùng stack công nghệ không
-- [ ] Vẽ ERD: `User(id, email, hashed_password, role, full_name, created_at)`
-- [ ] Vẽ ERD: `FaceProfile(id, user_id FK, embedding, created_at)`
-- [ ] Vẽ ERD: `CheckInRecord(id, user_id FK, checkin_time, similarity_score, status)`
+- [x] Pha 2 có tráo đổi hệ thống giữa các nhóm, không giới hạn cùng stack công nghệ
+- [x] Vẽ ERD: `User(id, email, hashed_password, role, full_name, created_at)`
+- [x] Vẽ ERD: `FaceProfile(id, user_id FK, embedding, created_at)`
+- [x] Vẽ ERD: `CheckInRecord(id, user_id FK, checkin_time, similarity_score, status)`
 - [ ] Review kiến trúc 3 tầng, thống nhất tên thư mục: `app/api`, `app/services`, `app/repositories`, `app/models`, `app/schemas`, `tests/`
-- [ ] Tạo repo GitHub công khai + bật branch protection cho `main`
+- [x] Tạo repo GitHub công khai + bật branch protection cho `main`
 - [ ] Tạo GitHub Projects board (cột Backlog/To Do/In Progress/Review/Done)
 - [ ] Tạo issue cho toàn bộ WBS Tuần 2–8 (tiêu đề + assignee + label tuần)
 
 ### A
-- [ ] Viết ERD thành `docs/erd.md` (mermaid)
-- [ ] Draft SQLAlchemy models (chưa cần chạy)
-- [ ] `alembic init`
+- [x] Viết ERD thành `docs/erd.md` (mermaid)
+- [x] Draft SQLAlchemy models (chưa cần chạy)
+- [x] `alembic init`
 
 ### B
-- [ ] Khởi tạo FastAPI skeleton
-- [ ] `.env.example`
-- [ ] Cấu hình `pydantic-settings`
-- [ ] Pre-commit (ruff/black)
-- [ ] GitHub Actions skeleton (chạy lint)
+- [x] Khởi tạo FastAPI skeleton
+- [x] `.env.example`
+- [x] Cấu hình `pydantic-settings`
+- [x] Pre-commit (ruff/black) — dùng `ruff format` thay black; mỗi máy chạy `pre-commit install` một lần
+- [x] GitHub Actions skeleton (chạy lint)
 
 ### C
-- [ ] Viết đặc tả use-case: đăng ký khuôn mặt (sequence ngắn)
-- [ ] Viết đặc tả use-case: check-in (sequence ngắn)
-- [ ] Viết đặc tả use-case: xem lịch sử (sequence ngắn)
+- [x] Viết đặc tả use-case: đăng ký khuôn mặt (sequence ngắn)
+- [x] Viết đặc tả use-case: check-in (sequence ngắn)
+- [x] Viết đặc tả use-case: xem lịch sử (sequence ngắn)
 - [ ] Khảo sát & chốt model embedding (buffalo_s/InsightFace hay MobileFaceNet)
 - [ ] Chạy thử offline 1 ảnh, xác nhận chạy được trên CPU thường
 
 ### DoD cuối Tuần 1
-- [ ] `docs/architecture.md` + `docs/erd.md` đã commit
+- [x] `docs/architecture.md` + `docs/erd.md` đã commit
 - [ ] Repo skeleton đã push, CI lint chạy xanh
 - [ ] Board có đủ issue cho Tuần 2–8
-- [ ] Có câu trả lời (hoặc ghi nhận "chưa trả lời, giả định X") từ giảng viên về tráo đổi Pha 2
+- [x] Có câu trả lời (hoặc ghi nhận "chưa trả lời, giả định X") từ giảng viên về tráo đổi Pha 2
 - [ ] Đã chốt model embedding cụ thể (tên + kích thước + license)
 
 ---

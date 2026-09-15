@@ -1,0 +1,38 @@
+[importlinter]
+root_package = app
+# Bắt buộc bật khi contract có cấm module ngoài (fastapi, sqlalchemy...)
+include_external_packages = True
+
+[importlinter:contract:1]
+name = Tang nghiep vu khong import framework/DB
+type = forbidden
+source_modules =
+    app.services
+    app.domain
+forbidden_modules =
+    fastapi
+    starlette
+    sqlalchemy
+    alembic
+    app.api
+    app.models
+    app.repositories
+    app.schemas
+
+[importlinter:contract:2]
+name = Thu tu tang: api -> services -> domain
+type = layers
+layers =
+    app.api
+    app.services
+    app.domain
+
+[importlinter:contract:3]
+name = Adapter khong goi nguoc len tang tren
+type = forbidden
+source_modules =
+    app.repositories
+    app.ml
+forbidden_modules =
+    app.api
+    app.services

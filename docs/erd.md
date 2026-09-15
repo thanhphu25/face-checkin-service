@@ -128,8 +128,8 @@ CREATE INDEX ix_face_profiles_user_id ON face_profiles (user_id);
 ```python
 # Ghi: luôn float32, đã L2-normalize, little-endian
 vec = np.asarray(raw_embedding, dtype=np.float32)
-vec /= np.linalg.norm(vec)          # invariant: ||vec|| == 1
-blob = vec.tobytes()                 # 512 * 4 = 2048 byte
+vec /= np.linalg.norm(vec)  # invariant: ||vec|| == 1
+blob = vec.tobytes()  # 512 * 4 = 2048 byte
 
 # Đọc
 vec = np.frombuffer(blob, dtype=np.float32)
@@ -251,18 +251,7 @@ Stack đã chốt chạy **Postgres cho docker-compose/benchmark** và **SQLite 
 | Thời gian | `TIMESTAMPTZ` có timezone | `TIMESTAMP` **không** có timezone | **Luôn sinh `datetime.now(timezone.utc)` ở tầng app**, không dùng `server_default=now()`. Nếu không, so sánh thời gian sẽ lệch giữa test và prod |
 | Khóa ngoại | Luôn bật | **Tắt mặc định** | Bật `PRAGMA foreign_keys=ON` mỗi connection, nếu không `ON DELETE CASCADE` im lặng không chạy và test sẽ *pass sai* |
 
-```python
-# app/models/base.py — bật FK cho SQLite
-from sqlalchemy import event
-from sqlalchemy.engine import Engine
-
-@event.listens_for(Engine, "connect")
-def _set_sqlite_pragma(dbapi_connection, _):
-    if "sqlite3" in type(dbapi_connection).__module__:
-        cur = dbapi_connection.cursor()
-        cur.execute("PRAGMA foreign_keys=ON")
-        cur.close()
-```
+Cả 4 điểm trên đã được xử lý trong [`app/models/base.py`](../app/models/base.py) (pragma bật FK, `PkType` đổi biến thể theo dialect) và trong từng file model.
 
 ---
 
@@ -270,22 +259,7 @@ def _set_sqlite_pragma(dbapi_connection, _):
 
 ### Đặt tên ràng buộc ngay từ migration đầu
 
-```python
-# app/models/base.py
-from sqlalchemy import MetaData
-from sqlalchemy.orm import DeclarativeBase
-
-NAMING_CONVENTION = {
-    "ix":  "ix_%(table_name)s_%(column_0_N_name)s",
-    "uq":  "uq_%(table_name)s_%(column_0_name)s",
-    "ck":  "ck_%(table_name)s_%(constraint_name)s",
-    "fk":  "fk_%(table_name)s_%(column_0_name)s",
-    "pk":  "pk_%(table_name)s",
-}
-
-class Base(DeclarativeBase):
-    metadata = MetaData(naming_convention=NAMING_CONVENTION)
-```
+`NAMING_CONVENTION` đã khai báo sẵn trong [`app/models/base.py`](../app/models/base.py) — **đừng bỏ nó đi.**
 
 Lý do: SQLite **không hỗ trợ `ALTER TABLE DROP CONSTRAINT`**. Alembic vượt qua bằng `batch_alter_table` (tạo bảng mới → copy → đổi tên), nhưng thao tác đó cần **biết tên ràng buộc**. Nếu để DB tự đặt tên ẩn danh, mọi migration đụng tới constraint sẽ fail trên SQLite. Thêm 8 dòng ở migration đầu rẻ hơn nhiều so với gỡ ở Tuần 4.
 
