@@ -2,7 +2,7 @@
 # Nâng phiên bản hook: pre-commit autoupdate
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
+    rev: v0.16.8
     hooks:
       - id: ruff
         args: [--fix]

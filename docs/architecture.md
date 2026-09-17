@@ -569,7 +569,7 @@ Toàn bộ cấu hình qua biến môi trường (`app/core/config.py` dùng `py
 |---|---|---|---|---|
 | Unit | `tests/unit/` | Service + port giả: ngưỡng, phân quyền, nhánh lỗi | không | mili-giây |
 | Integration | `tests/integration/` | Repository với DB thật: mapping, cascade, index | SQLite/Postgres | giây |
-| API | `tests/api/` | TestClient: mã lỗi, ổ khóa auth, hình dạng JSON | app đầy đủ | giây |
+| API | `tests/api/` | ASGI AsyncClient: mã lỗi, ổ khóa auth, hình dạng JSON | app đầy đủ | giây |
 
 Ba ca test đáng giá nhất, viết trước:
 1. **Check-in thành công** — vector giả khớp profile giả, xác nhận ghi `status='success'` kèm `user_id`.

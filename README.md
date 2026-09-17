@@ -50,9 +50,10 @@ Tài liệu đầy đủ:
 
 ```bash
 # 1. Tạo môi trường ảo + cài dependencies
-uv venv --python 3.12          # hoặc: python3.12 -m venv .venv
+uv sync --python 3.12 --frozen --extra dev
 source .venv/bin/activate
-uv pip install -e ".[dev]"     # hoặc: pip install -e ".[dev]"
+
+# Không dùng uv: python3.12 -m venv .venv, activate, rồi pip install -e ".[dev]"
 
 # 2. Tạo file cấu hình
 cp .env.example .env
@@ -78,6 +79,7 @@ curl http://127.0.0.1:8000/health
 ruff check .              # lint
 ruff format .             # format (thay cho black)
 lint-imports              # kiểm tra phân tầng — phải luôn 3/3 contract KEPT
+pytest -q                 # chạy test
 ```
 
 Cài git hook để tự chạy khi commit (mỗi máy làm một lần):

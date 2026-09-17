@@ -14,21 +14,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: Cài dependencies
-        run: pip install -e ".[dev]"
+        run: uv sync --frozen --extra dev
 
       - name: Ruff lint
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Ruff format check
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
       - name: Kiểm tra phân tầng (import-linter)
-        run: lint-imports
+        run: uv run lint-imports
 
       - name: Smoke test — app khởi động được
         env:
           JWT_SECRET: ci-secret-khong-dung-that
-        run: python -c "from app.main import app; print(app.title)"
+        run: uv run python -c "from app.main import app; print(app.title)"
+
+      - name: Tests
+        run: uv run pytest -q
