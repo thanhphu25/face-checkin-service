@@ -11,6 +11,12 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — chore(dev): add PostgreSQL compose service
+
+- Thêm PostgreSQL 16 cho môi trường dev với volume bền vững và healthcheck.
+- Bổ sung biến môi trường mẫu cho database, tài khoản và cổng PostgreSQL.
+- Xác thực cấu hình Compose và cập nhật checklist Tuần 2.
+
 ## 2026-09-21 — feat(domain): add face embedder port
 
 - Thêm `FaceEmbedder` ABC với tên model và hợp đồng sinh embedding từ ảnh.

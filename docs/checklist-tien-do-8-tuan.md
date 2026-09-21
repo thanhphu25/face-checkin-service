@@ -76,7 +76,7 @@
 - [ ] Script/test thủ công `scripts/manual_test_repo.py` chứng minh CRUD chạy qua repository (sau A: repository impl + migration)
 
 ### B
-- [ ] Dựng docker-compose cho Postgres dev
+- [x] Dựng docker-compose cho Postgres dev
 - [ ] Hỗ trợ A test kết nối DB (chờ A: migration Postgres sẵn sàng)
 - [ ] Bắt đầu FastAPI router rỗng (chưa nối service)
 
