@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — feat(ml): implement InsightFace embedder
+
+- Thêm adapter InsightFace CPU xử lý rõ ảnh lỗi, không có mặt và nhiều mặt.
+- Bảo đảm embedding đầu ra luôn liên tục, `float32` và L2-normalized; khóa dependency ML.
+
 ## 2026-09-21 — test(repo): add CRUD smoke script and close week 2
 
 - Thêm script tạo/đọc/liệt kê/xóa cả ba entity hoàn toàn qua Repository port.

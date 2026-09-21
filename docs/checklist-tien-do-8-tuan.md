@@ -113,7 +113,7 @@ Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md
 - [ ] Versioning `/api/v1/...` (làm trước B: 3 router để tránh đổi path)
 
 ### C (chính)
-- [ ] `InsightFaceEmbedder` implementation thật (sau C: `FaceEmbedder`; làm trước test end-to-end)
+- [x] `InsightFaceEmbedder` implementation thật (sau C: `FaceEmbedder`; làm trước test end-to-end)
 - [ ] `UserService` (thuần Python, không import FastAPI/SQLAlchemy) (chờ A: `UserRepository` impl)
 - [ ] `FaceProfileService` (gọi `FaceEmbedder` + Repository) (chờ A: `FaceProfileRepository`; sau C: `FaceEmbedder`)
 - [ ] `CheckInService` (so khớp embedding, tính similarity) (chờ A: `FaceProfileRepository` + `CheckInRepository`; sau C: `FaceEmbedder`)
