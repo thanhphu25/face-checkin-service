@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — feat(api): scaffold v1 resource routers
+
+- Thêm router rỗng có prefix ổn định cho users, face profiles và check-ins dưới `/api/v1`.
+- Lắp router phiên bản vào FastAPI app, chưa nối service hay nghiệp vụ.
+
 ## 2026-09-21 — feat(schema): add API request and response schemas
 
 - Thêm schema request/response cho user, hồ sơ khuôn mặt và lượt check-in.

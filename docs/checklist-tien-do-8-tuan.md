@@ -78,7 +78,7 @@
 ### B
 - [x] Dựng docker-compose cho Postgres dev
 - [x] Hỗ trợ A test kết nối DB (chờ A: migration Postgres sẵn sàng)
-- [ ] Bắt đầu FastAPI router rỗng (chưa nối service)
+- [x] Bắt đầu FastAPI router rỗng (chưa nối service)
 
 ### C
 - [x] Interface `FaceEmbedder` (abstract, độc lập với DB, chưa cần tối ưu)
