@@ -72,7 +72,7 @@
 - [x] Repository interface (ABC, framework-free): `UserRepository` (sau A: domain entity `User`)
 - [x] Repository interface: `FaceProfileRepository` (sau A: domain entity `FaceProfile`)
 - [x] Repository interface: `CheckInRepository` (sau A: domain entity `CheckInRecord`)
-- [ ] Implementation SQLAlchemy cho cả 3 repository trên (sau A: models + 3 interface)
+- [x] Implementation SQLAlchemy cho cả 3 repository trên (sau A: models + 3 interface)
 - [ ] Script/test thủ công `scripts/manual_test_repo.py` chứng minh CRUD chạy qua repository (sau A: repository impl + migration)
 
 ### B
