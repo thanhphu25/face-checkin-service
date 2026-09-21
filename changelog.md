@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — test(api): verify CRUD and face embedding flow
+
+- Thêm kiểm thử API/OpenAPI, boundary Service và E2E dùng model InsightFace thật qua SQLite.
+- Xác minh cùng luồng trên PostgreSQL cách ly, ghi bằng chứng và hoàn tất checklist/DoD Tuần 3.
+
 ## 2026-09-21 — perf(benchmark): scaffold API load harness
 
 - Thêm harness async cho endpoint cuối `/api/v1/checkins` với URL, ảnh, request và concurrency cấu hình được.

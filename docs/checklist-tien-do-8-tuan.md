@@ -101,7 +101,7 @@ Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md
 > Phụ thuộc: A chốt Repository; C làm Service; B chốt versioning/router skeleton rồi nối Service vào router.
 
 ### A
-- [ ] Hỗ trợ B/C khi vướng mắc về Repository (sau A: repository Tuần 2 đã chốt)
+- [x] Hỗ trợ B/C khi vướng mắc về Repository (sau A: repository Tuần 2 đã chốt)
 - [x] Dựng khung script load test (`locustfile.py` hoặc `benchmark.py`, chưa chạy thật) (chờ B: chốt URL endpoint)
 
 ### B
@@ -117,12 +117,14 @@ Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md
 - [x] `UserService` (thuần Python, không import FastAPI/SQLAlchemy) (chờ A: `UserRepository` impl)
 - [x] `FaceProfileService` (gọi `FaceEmbedder` + Repository) (chờ A: `FaceProfileRepository`; sau C: `FaceEmbedder`)
 - [x] `CheckInService` (so khớp embedding, tính similarity) (chờ A: `FaceProfileRepository` + `CheckInRepository`; sau C: `FaceEmbedder`)
-- [ ] Kiểm tra kỹ: Service layer không import framework/DB (sau C: 3 service)
+- [x] Kiểm tra kỹ: Service layer không import framework/DB (sau C: 3 service)
 
 ### DoD cuối Tuần 3
-- [ ] Toàn bộ endpoint CRUD cơ bản (POST/GET/DELETE cho 3 entity) chạy qua `/docs`, test tay bằng Swagger UI thành công (chờ B: router; C: service; A: repository)
-- [ ] Service layer không có import framework/DB — kiểm tra bằng `grep` nhanh (chờ C: hoàn tất service)
-- [ ] Face embedding thật (không mock) chạy end-to-end: upload ảnh → sinh embedding → lưu DB (chờ B: router; C: embedder/service; A: repository)
+- [x] Toàn bộ endpoint CRUD cơ bản (POST/GET/DELETE cho 3 entity) chạy qua `/docs`, test tay bằng Swagger UI thành công (chờ B: router; C: service; A: repository)
+- [x] Service layer không có import framework/DB — kiểm tra bằng `grep` nhanh (chờ C: hoàn tất service)
+- [x] Face embedding thật (không mock) chạy end-to-end: upload ảnh → sinh embedding → lưu DB (chờ B: router; C: embedder/service; A: repository)
+
+Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3-verification.md](week-3-verification.md).
 
 ---
 

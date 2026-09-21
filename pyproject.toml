@@ -45,3 +45,6 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "real_model: runs the official InsightFace model and may require a downloaded model cache",
+]
