@@ -1,0 +1,19 @@
+# Changelog
+
+Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định dạng:
+
+```text
+## YYYY-MM-DD — type(scope): mô tả ngắn
+
+- Thay đổi chính thứ nhất.
+- Thay đổi chính thứ hai.
+```
+
+Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
+
+## 2026-09-21 — feat(domain): add entities and repository ports
+
+- Thêm domain entity và enum cho `User`, `FaceProfile`, `CheckInRecord`.
+- Thêm Repository ABC độc lập framework cho ba entity.
+- Thêm unit test và cập nhật checklist Tuần 2.
+- Thêm kế hoạch commit theo dependency cho toàn bộ Tuần 2–8.

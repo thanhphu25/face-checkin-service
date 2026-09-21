@@ -1,6 +1,6 @@
 # Checklist tiến độ 8 tuần — Face Check-in Backend
 
-> Đi kèm bản kế hoạch [ke-hoach-8-tuan.md](ke-hoach-8-tuan.md) (kiến trúc, API, stack, RACI, rủi ro). Đọc file đó để hiểu *vì sao*; đọc file này để tick việc *cụ thể theo tuần*, không lặp lại nội dung thiết kế.
+> Đi kèm bản kế hoạch [ke-hoach-8-tuan.md](ke-hoach-8-tuan.md) (kiến trúc, API, stack, RACI, rủi ro) và [ke-hoach-commit-tuan-2-8.md](ke-hoach-commit-tuan-2-8.md) (thứ tự commit, dependency, tránh conflict). Đọc file này để tick việc *cụ thể theo tuần*, không lặp lại nội dung thiết kế.
 
 ## Cách dùng file này
 
@@ -66,12 +66,12 @@
 
 ### A (chính)
 - [ ] SQLAlchemy models thật (không phải draft)
-- [ ] Domain entities thuần Python cho `User`, `FaceProfile`, `CheckInRecord` (sau A: chốt field; làm trước 3 Repository interface)
+- [x] Domain entities thuần Python cho `User`, `FaceProfile`, `CheckInRecord` (sau A: chốt field; làm trước 3 Repository interface)
 - [ ] Alembic migration đầu tiên chạy được trên Postgres (chờ B: Postgres trong docker-compose)
 - [ ] Alembic migration chạy được trên SQLite (sau A: models + migration đầu tiên)
-- [ ] Repository interface (ABC, framework-free): `UserRepository` (sau A: domain entity `User`)
-- [ ] Repository interface: `FaceProfileRepository` (sau A: domain entity `FaceProfile`)
-- [ ] Repository interface: `CheckInRepository` (sau A: domain entity `CheckInRecord`)
+- [x] Repository interface (ABC, framework-free): `UserRepository` (sau A: domain entity `User`)
+- [x] Repository interface: `FaceProfileRepository` (sau A: domain entity `FaceProfile`)
+- [x] Repository interface: `CheckInRepository` (sau A: domain entity `CheckInRecord`)
 - [ ] Implementation SQLAlchemy cho cả 3 repository trên (sau A: models + 3 interface)
 - [ ] Script/test thủ công `scripts/manual_test_repo.py` chứng minh CRUD chạy qua repository (sau A: repository impl + migration)
 
