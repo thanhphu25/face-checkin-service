@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — feat(db): finalize models and add initial migration
+
+- Chốt ORM cho ba entity với khóa chính identity tương thích PostgreSQL/SQLite.
+- Thêm migration schema đầu tiên và kiểm thử vòng upgrade → downgrade → upgrade trên SQLite.
+
 ## 2026-09-21 — chore(dev): add PostgreSQL compose service
 
 - Thêm PostgreSQL 16 cho môi trường dev với volume bền vững và healthcheck.

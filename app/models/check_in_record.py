@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Index, String
+from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Identity, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, PkType
@@ -22,7 +22,7 @@ class CheckInRecordORM(Base):
         Index("ix_check_in_records_checkin_time", "checkin_time"),
     )
 
-    id: Mapped[int] = mapped_column(PkType, primary_key=True)
+    id: Mapped[int] = mapped_column(PkType, Identity(always=True), primary_key=True)
     # NULL khi không khớp được ai — POST /checkins nhận ảnh của người chưa biết là ai.
     user_id: Mapped[int | None] = mapped_column(
         PkType, ForeignKey("users.id", ondelete="SET NULL"), nullable=True

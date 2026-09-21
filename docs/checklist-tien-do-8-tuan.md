@@ -65,10 +65,10 @@
 > Phụ thuộc: B/C cần A hoàn thành Repository interface (ABC) trước cuối tuần để không bị chặn ở Tuần 3.
 
 ### A (chính)
-- [ ] SQLAlchemy models thật (không phải draft)
+- [x] SQLAlchemy models thật (không phải draft)
 - [x] Domain entities thuần Python cho `User`, `FaceProfile`, `CheckInRecord` (sau A: chốt field; làm trước 3 Repository interface)
-- [ ] Alembic migration đầu tiên chạy được trên Postgres (chờ B: Postgres trong docker-compose)
-- [ ] Alembic migration chạy được trên SQLite (sau A: models + migration đầu tiên)
+- [x] Alembic migration đầu tiên chạy được trên Postgres (chờ B: Postgres trong docker-compose)
+- [x] Alembic migration chạy được trên SQLite (sau A: models + migration đầu tiên)
 - [x] Repository interface (ABC, framework-free): `UserRepository` (sau A: domain entity `User`)
 - [x] Repository interface: `FaceProfileRepository` (sau A: domain entity `FaceProfile`)
 - [x] Repository interface: `CheckInRepository` (sau A: domain entity `CheckInRecord`)
@@ -77,7 +77,7 @@
 
 ### B
 - [x] Dựng docker-compose cho Postgres dev
-- [ ] Hỗ trợ A test kết nối DB (chờ A: migration Postgres sẵn sàng)
+- [x] Hỗ trợ A test kết nối DB (chờ A: migration Postgres sẵn sàng)
 - [ ] Bắt đầu FastAPI router rỗng (chưa nối service)
 
 ### C
