@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — feat(api): add v1 composition root and error handlers
+
+- Lắp session theo request, Repository, Service, embedder singleton và password hasher qua dependency factory.
+- Commit audit cho lỗi nghiệp vụ dự kiến, rollback lỗi hệ thống và map lỗi domain sang HTTP 400/404/422.
+
 ## 2026-09-21 — feat(service): implement check-in service
 
 - Thêm cosine matching vector hóa, lọc profile theo model và ngưỡng cấu hình.

@@ -108,9 +108,9 @@ Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md
 - [ ] Router `/users` (chưa auth) (chờ C: `UserService` + schema `User`)
 - [ ] Router `/face-profiles` (chưa auth) (chờ C: `FaceProfileService` + schema `FaceProfile`)
 - [ ] Router `/checkins` (chưa auth) (chờ C: `CheckInService` + schema `CheckInRecord`)
-- [ ] Nối dependency API → Service → Repository trong composition root (chờ A: repository impl; C: service contract)
-- [ ] Exception handler chuẩn (400/404/422)
-- [ ] Versioning `/api/v1/...` (làm trước B: 3 router để tránh đổi path)
+- [x] Nối dependency API → Service → Repository trong composition root (chờ A: repository impl; C: service contract)
+- [x] Exception handler chuẩn (400/404/422)
+- [x] Versioning `/api/v1/...` (làm trước B: 3 router để tránh đổi path)
 
 ### C (chính)
 - [x] `InsightFaceEmbedder` implementation thật (sau C: `FaceEmbedder`; làm trước test end-to-end)
