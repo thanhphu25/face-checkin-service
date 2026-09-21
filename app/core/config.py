@@ -1,5 +1,7 @@
 from functools import lru_cache
+from typing import Literal
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,8 +11,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./facecheckin.db"
 
     jwt_secret: str
-    jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
+    access_token_expire_minutes: int = Field(default=30, gt=0)
 
     similarity_threshold: float = 0.40
     embedding_model: str = "buffalo_s"

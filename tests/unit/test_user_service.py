@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 import pytest
 
 from app.domain import (
+    AuthenticationFailed,
     EmailAlreadyExists,
     InvalidEmail,
     PasswordHasher,
@@ -46,12 +47,14 @@ class InMemoryUserRepository(UserRepository):
 class RecordingPasswordHasher(PasswordHasher):
     def __init__(self) -> None:
         self.passwords: list[str] = []
+        self.verify_attempts: list[tuple[str, str]] = []
 
     def hash(self, password: str) -> str:
         self.passwords.append(password)
         return f"hashed:{password}"
 
     def verify(self, password: str, password_hash: str) -> bool:
+        self.verify_attempts.append((password, password_hash))
         return password_hash == f"hashed:{password}"
 
 
@@ -89,6 +92,47 @@ def test_create_user_rejects_duplicate_normalized_email() -> None:
 
     with pytest.raises(EmailAlreadyExists):
         service.create_user(email=" PERSON@example.com ", password="password", full_name="Other")
+
+
+def test_authenticate_normalizes_email_and_verifies_password() -> None:
+    service, _, hasher = _service()
+    user = service.create_user(
+        email="person@example.com",
+        password="correct-password",
+        full_name="Person",
+    )
+
+    authenticated = service.authenticate(
+        email=" PERSON@EXAMPLE.COM ",
+        password="correct-password",
+    )
+
+    assert authenticated == user
+    assert hasher.verify_attempts == [("correct-password", user.hashed_password)]
+
+
+@pytest.mark.parametrize(
+    ("email", "password"),
+    [
+        ("person@example.com", "wrong-password"),
+        ("missing@example.com", "wrong-password"),
+        ("not-an-email", "wrong-password"),
+    ],
+)
+def test_authenticate_uses_same_error_for_unknown_email_and_wrong_password(
+    email: str, password: str
+) -> None:
+    service, _, hasher = _service()
+    service.create_user(
+        email="person@example.com",
+        password="correct-password",
+        full_name="Person",
+    )
+
+    with pytest.raises(AuthenticationFailed, match="Incorrect email or password"):
+        service.authenticate(email=email, password=password)
+
+    assert hasher.verify_attempts[-1][0] == password
 
 
 @pytest.mark.parametrize("email", ["", "missing-at.example.com", "@example.com", "a@@b.com"])

@@ -3,13 +3,15 @@ from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
-from app.core.security import PBKDF2PasswordHasher
-from app.domain.errors import DomainError
-from app.domain.ports import FaceEmbedder, PasswordHasher
+from app.core.security import Argon2PasswordHasher, decode_access_token
+from app.domain.entities import User
+from app.domain.errors import DomainError, InvalidToken
+from app.domain.ports import FaceEmbedder, PasswordHasher, UserRepository
 from app.ml import InsightFaceEmbedder
 from app.repositories import (
     SQLAlchemyCheckInRepository,
@@ -58,7 +60,7 @@ def get_embedder() -> FaceEmbedder:
 
 @lru_cache
 def get_password_hasher() -> PasswordHasher:
-    return PBKDF2PasswordHasher()
+    return Argon2PasswordHasher()
 
 
 SessionDependency = Annotated[Session, Depends(get_session)]
@@ -96,3 +98,24 @@ def get_check_in_service(
 UserServiceDependency = Annotated[UserService, Depends(get_user_service)]
 FaceProfileServiceDependency = Annotated[FaceProfileService, Depends(get_face_profile_service)]
 CheckInServiceDependency = Annotated[CheckInService, Depends(get_check_in_service)]
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+TokenDependency = Annotated[str, Depends(oauth2_scheme)]
+
+
+def get_current_user(token: TokenDependency, session: SessionDependency) -> User:
+    settings = get_settings()
+    claims = decode_access_token(
+        token=token,
+        secret=settings.jwt_secret,
+        algorithm=settings.jwt_algorithm,
+    )
+    users: UserRepository = SQLAlchemyUserRepository(session)
+    user = users.get(claims.user_id)
+    if user is None:
+        raise InvalidToken()
+    return user
+
+
+CurrentUserDependency = Annotated[User, Depends(get_current_user)]

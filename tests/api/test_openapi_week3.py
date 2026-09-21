@@ -22,6 +22,8 @@ def test_swagger_ui_and_week3_openapi_operations_are_available(monkeypatch) -> N
     assert docs_response.status_code == 200
     assert "Swagger UI" in docs_response.text
     assert set(schema["paths"]) == {
+        "/api/v1/auth/login",
+        "/api/v1/auth/me",
         "/api/v1/users",
         "/api/v1/users/{user_id}",
         "/api/v1/face-profiles",

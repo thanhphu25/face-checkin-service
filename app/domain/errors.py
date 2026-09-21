@@ -2,6 +2,20 @@ class DomainError(Exception):
     """Base class for expected business errors."""
 
 
+class AuthenticationFailed(DomainError):
+    """Raised when a login attempt cannot be authenticated."""
+
+    def __init__(self) -> None:
+        super().__init__("Incorrect email or password")
+
+
+class InvalidToken(DomainError):
+    """Raised when an access token cannot authenticate a current user."""
+
+    def __init__(self) -> None:
+        super().__init__("Could not validate credentials")
+
+
 class InvalidImage(DomainError):
     """Raised when uploaded bytes cannot be decoded as an image."""
 

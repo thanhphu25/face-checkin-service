@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — feat(auth): add password hashing and JWT login
+
+- Thay hasher tạo mới bằng Argon2id có tương thích PBKDF2 Tuần 3; khóa Argon2/PyJWT và thêm JWT có `sub`, `role`, `iat`, `exp`.
+- Thêm đăng nhập không làm lộ email tồn tại, dependency xác thực dùng chung và endpoint `/auth/login`, `/auth/me` không lộ password hash.
+
 ## 2026-09-21 — docs(auth): record dependency injection and sample-user contract
 
 - Chốt OAuth2 dependency dùng chung, JWT contract, ma trận endpoint và ownership/RBAC Tuần 4.
