@@ -115,7 +115,7 @@ Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md
 ### C (chính)
 - [x] `InsightFaceEmbedder` implementation thật (sau C: `FaceEmbedder`; làm trước test end-to-end)
 - [x] `UserService` (thuần Python, không import FastAPI/SQLAlchemy) (chờ A: `UserRepository` impl)
-- [ ] `FaceProfileService` (gọi `FaceEmbedder` + Repository) (chờ A: `FaceProfileRepository`; sau C: `FaceEmbedder`)
+- [x] `FaceProfileService` (gọi `FaceEmbedder` + Repository) (chờ A: `FaceProfileRepository`; sau C: `FaceEmbedder`)
 - [ ] `CheckInService` (so khớp embedding, tính similarity) (chờ A: `FaceProfileRepository` + `CheckInRepository`; sau C: `FaceEmbedder`)
 - [ ] Kiểm tra kỹ: Service layer không import framework/DB (sau C: 3 service)
 

@@ -1,3 +1,4 @@
+from app.services.face_profile_service import FaceProfileService
 from app.services.user_service import UserService
 
-__all__ = ["UserService"]
+__all__ = ["FaceProfileService", "UserService"]

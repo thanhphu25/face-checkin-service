@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — feat(service): implement face profile service
+
+- Thêm đăng ký, liệt kê và xóa hồ sơ khuôn mặt qua các domain port.
+- Kiểm tra user tồn tại và củng cố bất biến embedding `float32` đã L2-normalized.
+
 ## 2026-09-21 — feat(service): implement user service
 
 - Thêm CRUD người dùng qua Repository port, chuẩn hóa email bằng trim + casefold.

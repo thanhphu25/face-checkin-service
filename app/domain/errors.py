@@ -28,3 +28,7 @@ class InvalidEmail(DomainError):
 
 class UserNotFound(DomainError):
     """Raised when a user identifier does not exist."""
+
+
+class FaceProfileNotFound(DomainError):
+    """Raised when a face profile identifier does not exist."""
