@@ -16,6 +16,13 @@ class InvalidToken(DomainError):
         super().__init__("Could not validate credentials")
 
 
+class PermissionDenied(DomainError):
+    """Raised when an authenticated user cannot perform an operation."""
+
+    def __init__(self, message: str = "You do not have permission to perform this operation"):
+        super().__init__(message)
+
+
 class InvalidImage(DomainError):
     """Raised when uploaded bytes cannot be decoded as an image."""
 

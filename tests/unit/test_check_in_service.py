@@ -12,7 +12,10 @@ from app.domain import (
     FaceProfile,
     FaceProfileRepository,
     NoFaceDetected,
+    PermissionDenied,
+    Role,
     UnmatchedFace,
+    User,
 )
 from app.services import CheckInService
 
@@ -178,3 +181,26 @@ def test_history_get_list_and_delete_use_repository_port() -> None:
     assert service.list_check_ins() == []
     with pytest.raises(CheckInNotFound):
         service.get_check_in(record.id)
+
+
+def test_check_in_history_is_scoped_to_owner_and_admin() -> None:
+    service, _ = _service([_profile(1, 20, [1.0, 0.0])])
+    record = service.check_in(b"image")
+    owner = User(20, "owner@example.com", "hashed", Role.USER, "Owner", record.checkin_time)
+    other = User(30, "other@example.com", "hashed", Role.USER, "Other", record.checkin_time)
+    admin = User(40, "admin@example.com", "hashed", Role.ADMIN, "Admin", record.checkin_time)
+
+    assert service.list_check_ins_for(owner, user_id=other.id) == [record]
+    assert service.list_check_ins_for(other, user_id=owner.id) == []
+    assert service.list_check_ins_for(admin) == [record]
+    assert service.get_check_in_for(owner, record.id) == record
+    assert service.get_check_in_for(admin, record.id) == record
+    with pytest.raises(PermissionDenied):
+        service.get_check_in_for(other, record.id)
+    with pytest.raises(CheckInNotFound):
+        service.get_check_in_for(other, 404)
+    with pytest.raises(PermissionDenied):
+        service.delete_check_in_for(other, record.id)
+
+    service.delete_check_in_for(admin, record.id)
+    assert service.list_check_ins_for(admin) == []

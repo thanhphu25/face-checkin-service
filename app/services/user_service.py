@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from app.domain.entities import Role, User
 from app.domain.errors import AuthenticationFailed, EmailAlreadyExists, InvalidEmail, UserNotFound
 from app.domain.ports import PasswordHasher, UserRepository
+from app.services.authorization import require_admin, require_owner_or_admin
 
 
 class UserService:
@@ -41,10 +42,32 @@ class UserService:
             )
         )
 
+    def create_user_for(
+        self,
+        requester: User,
+        *,
+        email: str,
+        password: str,
+        full_name: str,
+        role: Role = Role.USER,
+    ) -> User:
+        require_admin(requester)
+        return self.create_user(
+            email=email,
+            password=password,
+            full_name=full_name,
+            role=role,
+        )
+
     def get_user(self, user_id: int) -> User:
         user = self._users.get(user_id)
         if user is None:
             raise UserNotFound(f"User {user_id} was not found")
+        return user
+
+    def get_user_for(self, requester: User, user_id: int) -> User:
+        user = self.get_user(user_id)
+        require_owner_or_admin(requester, owner_id=user.id)
         return user
 
     def authenticate(self, *, email: str, password: str) -> User:
@@ -62,9 +85,18 @@ class UserService:
     def list_users(self) -> list[User]:
         return self._users.list_all()
 
+    def list_users_for(self, requester: User) -> list[User]:
+        require_admin(requester)
+        return self.list_users()
+
     def delete_user(self, user_id: int) -> None:
         self.get_user(user_id)
         self._users.delete(user_id)
+
+    def delete_user_for(self, requester: User, user_id: int) -> None:
+        user = self.get_user(user_id)
+        require_admin(requester)
+        self._users.delete(user.id)
 
     @staticmethod
     def normalize_email(email: str) -> str:

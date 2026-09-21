@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 from app.core.security import Argon2PasswordHasher, decode_access_token
-from app.domain.entities import User
-from app.domain.errors import DomainError, InvalidToken
+from app.domain.entities import Role, User
+from app.domain.errors import DomainError, InvalidToken, PermissionDenied
 from app.domain.ports import FaceEmbedder, PasswordHasher, UserRepository
 from app.ml import InsightFaceEmbedder
 from app.repositories import (
@@ -119,3 +119,12 @@ def get_current_user(token: TokenDependency, session: SessionDependency) -> User
 
 
 CurrentUserDependency = Annotated[User, Depends(get_current_user)]
+
+
+def require_admin(current_user: CurrentUserDependency) -> User:
+    if current_user.role is not Role.ADMIN:
+        raise PermissionDenied("Administrator role is required")
+    return current_user
+
+
+AdminUserDependency = Annotated[User, Depends(require_admin)]

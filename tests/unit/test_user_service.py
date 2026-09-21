@@ -7,6 +7,7 @@ from app.domain import (
     EmailAlreadyExists,
     InvalidEmail,
     PasswordHasher,
+    PermissionDenied,
     Role,
     User,
     UserNotFound,
@@ -156,3 +157,48 @@ def test_get_list_and_delete_user_through_repository_port() -> None:
         service.get_user(user.id)
     with pytest.raises(UserNotFound):
         service.delete_user(user.id)
+
+
+def test_user_service_enforces_admin_and_self_access() -> None:
+    service, _, _ = _service()
+    admin = User(
+        id=100,
+        email="admin@example.com",
+        hashed_password="hashed",
+        role=Role.ADMIN,
+        full_name="Admin",
+        created_at=datetime(2026, 9, 21, 8, tzinfo=UTC),
+    )
+    ordinary_requester = User(
+        id=200,
+        email="other@example.com",
+        hashed_password="hashed",
+        role=Role.USER,
+        full_name="Other",
+        created_at=datetime(2026, 9, 21, 8, tzinfo=UTC),
+    )
+
+    created = service.create_user_for(
+        admin,
+        email="person@example.com",
+        password="password",
+        full_name="Person",
+    )
+
+    assert service.get_user_for(created, created.id) == created
+    assert service.get_user_for(admin, created.id) == created
+    assert service.list_users_for(admin) == [created]
+    with pytest.raises(PermissionDenied):
+        service.create_user_for(
+            ordinary_requester,
+            email="blocked@example.com",
+            password="password",
+            full_name="Blocked",
+        )
+    with pytest.raises(PermissionDenied):
+        service.get_user_for(ordinary_requester, created.id)
+    with pytest.raises(UserNotFound):
+        service.get_user_for(ordinary_requester, 404)
+
+    service.delete_user_for(admin, created.id)
+    assert service.list_users_for(admin) == []
