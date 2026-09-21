@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — docs(auth): record dependency injection and sample-user contract
+
+- Chốt OAuth2 dependency dùng chung, JWT contract, ma trận endpoint và ownership/RBAC Tuần 4.
+- Xác nhận `role` đã có trong domain/ORM/migration `0001`, định nghĩa tài khoản mẫu không chứa secret và giữ các xác nhận pair/review của con người ở trạng thái chưa hoàn tất.
+
 ## 2026-09-21 — test(api): verify CRUD and face embedding flow
 
 - Thêm kiểm thử API/OpenAPI, boundary Service và E2E dùng model InsightFace thật qua SQLite.

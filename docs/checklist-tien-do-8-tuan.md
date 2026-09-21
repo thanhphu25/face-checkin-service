@@ -137,8 +137,8 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [ ] Pair session ≥ nửa buổi: thống nhất cách implement dependency injection cho auth (chờ Tuần 3: API + service chạy)
 
 ### A
-- [ ] Thêm field `role` cho `User` (nếu chưa có) + migration cập nhật (làm trước B: RBAC)
-- [ ] Chốt dữ liệu user mẫu (`admin`, `user`) và bàn giao spec cho C (chờ B: chốt hash password; A không tạo seed script riêng)
+- [x] Thêm field `role` cho `User` (nếu chưa có) + migration cập nhật (đã có đủ trong domain, ORM và migration `0001`; không tạo migration thừa)
+- [x] Chốt dữ liệu user mẫu (`admin`, `user`) và bàn giao spec cho C (xem `week-4-auth-contract.md`; chỉ chốt identity/role, không commit mật khẩu)
 
 ### B (chính)
 - [ ] JWT login (hash bcrypt/argon2) (chờ C: `UserService`; A: `UserRepository`)
