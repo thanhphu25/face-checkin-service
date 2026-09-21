@@ -102,7 +102,7 @@ Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md
 
 ### A
 - [ ] Hỗ trợ B/C khi vướng mắc về Repository (sau A: repository Tuần 2 đã chốt)
-- [ ] Dựng khung script load test (`locustfile.py` hoặc `benchmark.py`, chưa chạy thật) (chờ B: chốt URL endpoint)
+- [x] Dựng khung script load test (`locustfile.py` hoặc `benchmark.py`, chưa chạy thật) (chờ B: chốt URL endpoint)
 
 ### B
 - [x] Router `/users` (chưa auth) (chờ C: `UserService` + schema `User`)
