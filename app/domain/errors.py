@@ -9,6 +9,10 @@ class InvalidImage(DomainError):
 class NoFaceDetected(DomainError):
     """Raised when an image does not contain a detectable face."""
 
+    def __init__(self, message: str = "No face was detected", *, record_id: int | None = None):
+        super().__init__(message)
+        self.record_id = record_id
+
 
 class MultipleFacesDetected(DomainError):
     """Raised when a single-person operation receives more than one face."""
@@ -32,3 +36,16 @@ class UserNotFound(DomainError):
 
 class FaceProfileNotFound(DomainError):
     """Raised when a face profile identifier does not exist."""
+
+
+class UnmatchedFace(DomainError):
+    """Raised after recording a check-in whose best score is below threshold."""
+
+    def __init__(self, best_score: float | None, *, record_id: int | None = None):
+        super().__init__("No registered face matched the image")
+        self.best_score = best_score
+        self.record_id = record_id
+
+
+class CheckInNotFound(DomainError):
+    """Raised when a check-in record identifier does not exist."""

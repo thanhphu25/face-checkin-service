@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — feat(service): implement check-in service
+
+- Thêm cosine matching vector hóa, lọc profile theo model và ngưỡng cấu hình.
+- Ghi lịch sử cho cả `success`, `unmatched`, `no_face` và hỗ trợ truy vấn/xóa bản ghi.
+
 ## 2026-09-21 — feat(service): implement face profile service
 
 - Thêm đăng ký, liệt kê và xóa hồ sơ khuôn mặt qua các domain port.
