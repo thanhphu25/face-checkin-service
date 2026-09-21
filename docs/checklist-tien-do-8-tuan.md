@@ -105,9 +105,9 @@ Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md
 - [ ] Dựng khung script load test (`locustfile.py` hoặc `benchmark.py`, chưa chạy thật) (chờ B: chốt URL endpoint)
 
 ### B
-- [ ] Router `/users` (chưa auth) (chờ C: `UserService` + schema `User`)
-- [ ] Router `/face-profiles` (chưa auth) (chờ C: `FaceProfileService` + schema `FaceProfile`)
-- [ ] Router `/checkins` (chưa auth) (chờ C: `CheckInService` + schema `CheckInRecord`)
+- [x] Router `/users` (chưa auth) (chờ C: `UserService` + schema `User`)
+- [x] Router `/face-profiles` (chưa auth) (chờ C: `FaceProfileService` + schema `FaceProfile`)
+- [x] Router `/checkins` (chưa auth) (chờ C: `CheckInService` + schema `CheckInRecord`)
 - [x] Nối dependency API → Service → Repository trong composition root (chờ A: repository impl; C: service contract)
 - [x] Exception handler chuẩn (400/404/422)
 - [x] Versioning `/api/v1/...` (làm trước B: 3 router để tránh đổi path)

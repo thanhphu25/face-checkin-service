@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — feat(api): implement resource routers
+
+- Hoàn thiện endpoint CRUD users, face profiles và check-ins dưới `/api/v1` chưa có auth.
+- Thêm upload JPEG/PNG có giới hạn dung lượng, response không lộ password hash hoặc embedding.
+
 ## 2026-09-21 — feat(api): add v1 composition root and error handlers
 
 - Lắp session theo request, Repository, Service, embedder singleton và password hasher qua dependency factory.

@@ -4,11 +4,23 @@ from app.api.v1.router import api_router
 from app.api.v1.users import router as users_router
 
 
-def test_v1_resource_routers_have_stable_prefixes_and_no_business_handlers() -> None:
+def test_v1_resource_routers_have_stable_prefixes_and_crud_handlers() -> None:
     assert api_router.prefix == "/api/v1"
     assert users_router.prefix == "/users"
     assert face_profiles_router.prefix == "/face-profiles"
     assert check_ins_router.prefix == "/checkins"
-    assert users_router.routes == []
-    assert face_profiles_router.routes == []
-    assert check_ins_router.routes == []
+    assert {method for route in users_router.routes for method in route.methods} == {
+        "POST",
+        "GET",
+        "DELETE",
+    }
+    assert {method for route in face_profiles_router.routes for method in route.methods} == {
+        "POST",
+        "GET",
+        "DELETE",
+    }
+    assert {method for route in check_ins_router.routes for method in route.methods} == {
+        "POST",
+        "GET",
+        "DELETE",
+    }
