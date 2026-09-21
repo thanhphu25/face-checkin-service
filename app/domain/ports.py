@@ -84,3 +84,13 @@ class FaceEmbedder(ABC):
     @abstractmethod
     def embed(self, image_bytes: bytes) -> np.ndarray:
         """Return a float32, L2-normalized embedding for the supplied image."""
+
+
+class PasswordHasher(ABC):
+    @abstractmethod
+    def hash(self, password: str) -> str:
+        """Return a non-reversible representation of a password."""
+
+    @abstractmethod
+    def verify(self, password: str, password_hash: str) -> bool:
+        """Return whether a password matches a stored representation."""

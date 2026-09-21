@@ -16,3 +16,15 @@ class MultipleFacesDetected(DomainError):
 
 class FaceEmbeddingFailed(DomainError):
     """Raised when the model cannot produce a usable embedding."""
+
+
+class EmailAlreadyExists(DomainError):
+    """Raised when a normalized email address is already registered."""
+
+
+class InvalidEmail(DomainError):
+    """Raised when an email address is empty or structurally invalid."""
+
+
+class UserNotFound(DomainError):
+    """Raised when a user identifier does not exist."""
