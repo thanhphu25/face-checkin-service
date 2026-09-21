@@ -73,7 +73,7 @@
 - [x] Repository interface: `FaceProfileRepository` (sau A: domain entity `FaceProfile`)
 - [x] Repository interface: `CheckInRepository` (sau A: domain entity `CheckInRecord`)
 - [x] Implementation SQLAlchemy cho cả 3 repository trên (sau A: models + 3 interface)
-- [ ] Script/test thủ công `scripts/manual_test_repo.py` chứng minh CRUD chạy qua repository (sau A: repository impl + migration)
+- [x] Script/test thủ công `scripts/manual_test_repo.py` chứng minh CRUD chạy qua repository (sau A: repository impl + migration)
 
 ### B
 - [x] Dựng docker-compose cho Postgres dev
@@ -87,9 +87,11 @@
 - [x] Pydantic schema request/response cho `CheckInRecord` (chờ A: chốt field `CheckInRecord`)
 
 ### DoD cuối Tuần 2
-- [ ] Repository interface + impl cho 3 entity, có test thủ công log lại (A xác nhận sau script CRUD)
-- [ ] Migration chạy sạch từ DB rỗng (`alembic upgrade head` trên máy sạch) (A + B xác nhận trên Postgres)
-- [ ] `FaceEmbedder` interface sẵn sàng (C xác nhận, B review chữ ký hàm)
+- [x] Repository interface + impl cho 3 entity, có test thủ công log lại (A xác nhận sau script CRUD)
+- [x] Migration chạy sạch từ DB rỗng (`alembic upgrade head` trên máy sạch) (A + B xác nhận trên Postgres)
+- [x] `FaceEmbedder` interface sẵn sàng (C xác nhận, B review chữ ký hàm)
+
+Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md](week-2-verification.md).
 
 ---
 

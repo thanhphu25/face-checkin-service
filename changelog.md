@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — test(repo): add CRUD smoke script and close week 2
+
+- Thêm script tạo/đọc/liệt kê/xóa cả ba entity hoàn toàn qua Repository port.
+- Xác nhận migration và CRUD trên SQLite/PostgreSQL, hoàn tất checklist và DoD Tuần 2.
+
 ## 2026-09-21 — feat(api): scaffold v1 resource routers
 
 - Thêm router rỗng có prefix ổn định cho users, face profiles và check-ins dưới `/api/v1`.
