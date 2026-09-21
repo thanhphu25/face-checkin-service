@@ -9,6 +9,8 @@ from app.domain import (
     FaceProfile,
     FaceProfileNotFound,
     FaceProfileRepository,
+    MultipleFacesDetected,
+    NoFaceDetected,
     PermissionDenied,
     Role,
     User,
@@ -68,8 +70,9 @@ class ProfileStore(FaceProfileRepository):
 
 
 class FixedEmbedder(FaceEmbedder):
-    def __init__(self, embedding: np.ndarray) -> None:
+    def __init__(self, embedding: np.ndarray, *, error: Exception | None = None) -> None:
         self.embedding = embedding
+        self.error = error
         self.images: list[bytes] = []
 
     @property
@@ -78,6 +81,8 @@ class FixedEmbedder(FaceEmbedder):
 
     def embed(self, image_bytes: bytes) -> np.ndarray:
         self.images.append(image_bytes)
+        if self.error is not None:
+            raise self.error
         return self.embedding
 
 
@@ -94,10 +99,15 @@ def _user(user_id: int = 1) -> User:
 
 def _service(
     embedding: np.ndarray | None = None,
+    *,
+    error: Exception | None = None,
 ) -> tuple[FaceProfileService, UserStore, ProfileStore, FixedEmbedder]:
     users = UserStore([_user()])
     profiles = ProfileStore()
-    embedder = FixedEmbedder(np.array([3.0, 4.0]) if embedding is None else embedding)
+    embedder = FixedEmbedder(
+        np.array([3.0, 4.0]) if embedding is None else embedding,
+        error=error,
+    )
     service = FaceProfileService(
         profiles,
         users,
@@ -128,6 +138,17 @@ def test_register_face_requires_existing_user_and_valid_embedding() -> None:
     invalid_service, _, _, _ = _service(np.zeros(2))
     with pytest.raises(FaceEmbeddingFailed):
         invalid_service.register_face(1, b"image")
+
+
+@pytest.mark.parametrize("error", [NoFaceDetected(), MultipleFacesDetected()])
+def test_register_face_preserves_detection_errors_without_persisting(error: Exception) -> None:
+    service, _, profiles, embedder = _service(error=error)
+
+    with pytest.raises(type(error)):
+        service.register_face(1, b"image")
+
+    assert embedder.images == [b"image"]
+    assert profiles.items == {}
 
 
 def test_list_profiles_all_or_by_existing_user() -> None:
@@ -181,5 +202,9 @@ def test_face_profile_ownership_scopes_lists_and_deletes() -> None:
     with pytest.raises(FaceProfileNotFound):
         service.delete_profile_for(other, 404)
 
+    service.delete_profile_for(owner, owner_profile.id)
+    assert service.list_profiles_for(admin) == [other_profile]
+
+    owner_profile = service.register_face_for(owner, b"image")
     service.delete_profile_for(admin, owner_profile.id)
     assert service.list_profiles_for(admin) == [other_profile]

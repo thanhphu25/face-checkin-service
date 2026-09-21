@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — test(service): cover face registration and check-in outcomes
+
+- Củng cố fake Repository/FaceEmbedder đúng port cho đăng ký thành công, user thiếu, no-face và multiple-face.
+- Bao phủ check-in success/unmatched/no-face, audit thất bại, loại profile sai model/dimension và ownership ở Service.
+
 ## 2026-09-21 — feat(auth): add shared authentication and RBAC
 
 - Áp dụng `get_current_user`/`require_admin` dùng chung cho các route được bảo vệ, giữ `POST /checkins` công khai.
