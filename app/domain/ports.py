@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+import numpy as np
+
 from app.domain.entities import CheckInRecord, FaceProfile, User
 
 
@@ -71,3 +73,14 @@ class CheckInRepository(ABC):
     @abstractmethod
     def delete(self, record_id: int) -> None:
         """Delete a check-in record when it exists."""
+
+
+class FaceEmbedder(ABC):
+    @property
+    @abstractmethod
+    def model_name(self) -> str:
+        """Return the stable name of the model that produces embeddings."""
+
+    @abstractmethod
+    def embed(self, image_bytes: bytes) -> np.ndarray:
+        """Return a float32, L2-normalized embedding for the supplied image."""

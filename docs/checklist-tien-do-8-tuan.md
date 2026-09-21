@@ -81,7 +81,7 @@
 - [ ] Bắt đầu FastAPI router rỗng (chưa nối service)
 
 ### C
-- [ ] Interface `FaceEmbedder` (abstract, độc lập với DB, chưa cần tối ưu)
+- [x] Interface `FaceEmbedder` (abstract, độc lập với DB, chưa cần tối ưu)
 - [ ] Pydantic schema request/response cho `User` (chờ A: chốt field `User`)
 - [ ] Pydantic schema request/response cho `FaceProfile` (chờ A: chốt field `FaceProfile`)
 - [ ] Pydantic schema request/response cho `CheckInRecord` (chờ A: chốt field `CheckInRecord`)
