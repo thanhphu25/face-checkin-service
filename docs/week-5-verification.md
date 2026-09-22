@@ -85,13 +85,16 @@ nằm trong container app. Redis chỉ được dựng sẵn cho Pha 2 và chưa
 
 ## CI và mô phỏng job cục bộ
 
-Workflow `.github/workflows/ci.yml` có ba job độc lập:
+Workflow `.github/workflows/ci.yml` có bốn job độc lập:
 
 1. `quality-and-sqlite`: sync lockfile, Ruff lint/format, import-linter, app smoke và unit/API/SQLite
    integration; marker `real_model` bị loại chủ ý.
 2. `postgres-integration`: PostgreSQL service thật có healthcheck, migration Alembic và integration
    test với `REQUIRE_POSTGRES_TESTS=1`, nên thiếu URL hoặc không chạy PostgreSQL sẽ làm job fail.
 3. `docker-image`: build production image từ `Dockerfile`.
+4. `compose-clean-setup`: checkout trên GitHub-hosted Ubuntu runner, build Compose không dùng cache,
+   chạy migration/app/PostgreSQL/Redis, kiểm tra health/OpenAPI/kết nối DB rồi `down -v` và xác nhận
+   không còn container/volume mang label project test.
 
 Các lệnh tương đương job đã chạy cục bộ trước commit:
 
@@ -101,7 +104,7 @@ uv run ruff check .
 uv run ruff format --check .
 uv run lint-imports
 uv run pytest -q -m "not real_model" tests/unit tests/api tests/integration
-# 90 passed, 8 skipped (PostgreSQL không cấp cho job nhẹ), 1 deselected
+# 91 passed, 8 skipped (PostgreSQL không cấp cho job nhẹ), 1 deselected
 
 POSTGRES_TEST_DATABASE_URL=postgresql+psycopg://.../facecheckin_ci_test
 REQUIRE_POSTGRES_TESTS=1 uv run pytest -q tests/integration -p no:cacheprovider
@@ -112,7 +115,11 @@ docker build --tag face-checkin-service:ci .
 ```
 
 Real-model E2E không chạy trong CI thường để tránh tải model nặng ngoài chủ ý. Tài liệu này không dùng
-kết quả mô phỏng cục bộ để tuyên bố GitHub Actions xanh; run thật được kiểm tra riêng sau khi push.
+kết quả mô phỏng cục bộ để tuyên bố GitHub Actions xanh. Sau push, GitHub Actions run
+[`35700197582`](https://github.com/thanhphu25/face-checkin-service/actions/runs/35700197582) của commit
+`909a1b6` đã hoàn tất thành công ở lần chạy đầu: `quality-and-sqlite`, `postgres-integration` và
+`docker-image` đều xanh. Một job `compose-clean-setup` được bổ sung ở follow-up commit để kiểm chứng
+toàn stack trên GitHub-hosted runner, thay vì suy diễn từ Docker image build.
 
 ## Clean-directory / clean-setup
 
@@ -153,7 +160,7 @@ RUN_REAL_MODEL_TESTS=1 uv run pytest -q tests/api/test_real_embedding_e2e.py
 
 POSTGRES_TEST_DATABASE_URL=postgresql+psycopg://.../facecheckin_w5_final_test
 REQUIRE_POSTGRES_TESTS=1 RUN_REAL_MODEL_TESTS=1 uv run pytest -q -p no:cacheprovider
-# 99 passed, 1 warning in 5.37s
+# 100 passed, 1 warning in 5.18s
 ```
 
 Warning duy nhất là `FutureWarning` từ `insightface/utils/face_align.py`, không phải test failure.
@@ -167,15 +174,19 @@ Các tài nguyên test đã dọn:
 - Compose project `facecheckin_w5_c03_20260922` và `facecheckin_w5_clean_20260922`, gồm database,
   container, network và named volume test.
 - PostgreSQL container/database riêng của Repository, CI simulation và final suite.
+- PostgreSQL container/database follow-up dùng để chạy lại suite sau khi thêm hosted Compose job.
 - Clone/cache tạm `/tmp/facecheckin-w5-clean-OQWy5C` dùng cho clean-directory verification.
 - Dữ liệu bootstrap giả; không có row test còn lại trước khi database bị xóa.
 
 Không xóa hoặc reset database/container/volume dev. Image verification được giữ lại cục bộ để có thể
 đối chiếu; image không chứa dữ liệu hay secret.
 
-Các việc chưa được tài liệu này xác nhận và không được tick:
+Hai hoạt động con người từ Tuần 4 đã được chủ project chấp thuận thay bằng
+[technical review auth có cấu trúc](week-4-auth-technical-review.md). Đây là tiêu chí thay thế, không
+phải tuyên bố pair session hoặc review chéo A/C của con người đã diễn ra.
+
+Các việc chưa được tài liệu này xác nhận và chưa được tick:
 
 - Chạy Compose trên máy hoàn toàn khác/máy sạch của một thành viên A hoặc C.
-- Pair session và review chéo của con người còn tồn từ Tuần 4.
 - Review README của A/B nếu nhóm yêu cầu biên bản xác nhận.
 - Seed toàn diện, benchmark/baseline, OpenAPI export và release/tag thuộc Tuần 6.

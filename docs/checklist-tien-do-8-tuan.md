@@ -134,9 +134,10 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 > Đây là điểm dễ lệch chuẩn kiến trúc nhất → cả nhóm pair lại.
 >
 > Bằng chứng kỹ thuật SQLite/PostgreSQL/API/OpenAPI/InsightFace: [week-4-verification.md](week-4-verification.md).
+> Technical review thay thế được chủ project chấp thuận: [week-4-auth-technical-review.md](week-4-auth-technical-review.md). Tài liệu này không tuyên bố đã có pair/review của con người.
 
 ### Cả nhóm
-- [ ] Pair session ≥ nửa buổi: thống nhất cách implement dependency injection cho auth (chờ Tuần 3: API + service chạy)
+- [x] Technical review có cấu trúc thay cho pair session auth (chủ project chấp thuận ngày 2026-09-22; không tuyên bố đã có pair session nửa buổi của con người)
 
 ### A
 - [x] Thêm field `role` cho `User` (nếu chưa có) + migration cập nhật (đã có đủ trong domain, ORM và migration `0001`; không tạo migration thừa)
@@ -158,7 +159,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [x] `POST /face-profiles` và `GET /checkins` yêu cầu JWT — API integration test xác nhận 401 khi không có token
 - [x] RBAC hoạt động: user thường không xóa được record người khác / không tạo được user mới
 - [x] Unit test service layer chạy pass bằng đúng dependency và lệnh pytest của CI
-- [ ] Auth code không bị copy-paste lặp ở từng handler — AST test/review kỹ thuật đã pass; còn chờ A/C xác nhận review chéo của con người
+- [x] Auth code không bị copy-paste lặp ở từng handler — AST test và technical review thay thế đã pass; không tuyên bố đã có review chéo A/C của con người
 
 ---
 
