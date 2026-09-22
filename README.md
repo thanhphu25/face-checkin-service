@@ -110,7 +110,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 ```bash
 git clone https://github.com/thanhphu25/face-checkin-service.git
 cd face-checkin-service
-git switch week5
+git switch --detach v1.0-phase1   # bản bàn giao Pha 1; dùng `git switch week6` nếu muốn nhánh phát triển
 cp .env.example .env
 docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```

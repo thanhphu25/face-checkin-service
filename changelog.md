@@ -11,6 +11,12 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — chore(release): finalize phase 1 handoff
+
+- Chạy lại toàn bộ đường bàn giao trên project Compose cách ly: build, up, migrate, seed từ host, đăng nhập, RBAC 401, Swagger, check-in thật và dọn sạch container/volume.
+- Xác nhận `docs/openapi.json` đã commit khớp tuyệt đối với `/openapi.json` của container đang chạy.
+- Rà secret toàn repo, sửa hướng dẫn clone sang tag bàn giao và ghi bằng chứng vào `docs/week-6-verification.md`; ký bảy trên tám dòng checklist bàn giao, còn lại là tag.
+
 ## 2026-09-22 — docs(handoff): document benchmark reproduction
 
 - Liệt kê đủ gói bàn giao benchmark: harness, runner, seed, nguồn ảnh mẫu và số liệu Tuần 6.
