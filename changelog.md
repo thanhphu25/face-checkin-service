@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — build(compose): run app with PostgreSQL and Redis
+
+- Mở rộng Compose thành app, migration one-shot, PostgreSQL 16 và Redis 7 với healthcheck/dependency rõ ràng.
+- Dùng volume bền vững cho PostgreSQL/model cache, port cấu hình được và placeholder môi trường; Redis vẫn chỉ là hạ tầng dự phòng Pha 2.
+
 ## 2026-09-22 — build(docker): add multi-stage application image
 
 - Thêm image Python 3.12 multi-stage cài production dependency từ `uv.lock`, runtime non-root và healthcheck không cần curl.
