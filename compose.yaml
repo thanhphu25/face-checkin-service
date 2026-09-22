@@ -17,18 +17,6 @@ services:
       start_period: 5s
     restart: unless-stopped
 
-  redis:
-    image: redis:7.4-alpine
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-    restart: unless-stopped
-
   migrate:
     image: ${APP_IMAGE:-face-checkin-service:local}
     build:
@@ -54,7 +42,6 @@ services:
       SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.40}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-buffalo_s}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-5}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:

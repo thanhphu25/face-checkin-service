@@ -12,7 +12,7 @@ Mọi quyết định dưới đây đều truy ngược được về một dò
 | "Phân tầng rõ: API → Nghiệp vụ → Truy cập dữ liệu" | 3 tầng + thư mục tách bạch (mục 3, 4) | Cấu trúc thư mục, `import-linter` |
 | "Tầng nghiệp vụ **không import** framework web hay thư viện DB" | Service chỉ phụ thuộc ABC trong `app/domain/ports.py` (mục 5, 6) | `import-linter` contract 1 (mục 14) |
 | "Truy cập dữ liệu qua Repository/DAO, bên dưới dùng ORM" | Repository ABC + implementation SQLAlchemy (mục 6) | `app/repositories/` |
-| "Xác thực qua middleware/filter/interceptor, **không viết lặp** trong từng endpoint" | Một `get_current_user` gắn ở **cấp router** (mục 8) | Không handler nào tự decode JWT |
+| "Xác thực qua middleware/filter/interceptor, **không viết lặp** trong từng endpoint" | `AuthenticationMiddleware` xác minh JWT/user; dependency đọc principal (mục 8) | Không handler nào tự decode JWT |
 | "Ít nhất 1 GET và 1 POST cần xác thực" | `GET /auth/me`, `GET /checkins`, `POST /face-profiles` (mục 8) | Swagger hiện ổ khóa |
 | "REST API, JSON, có POST/GET/DELETE" | Router `/api/v1/*` (mục 7) | OpenAPI tự sinh |
 | "Có tài liệu API (OpenAPI/Swagger)" | FastAPI tự sinh tại `/docs` + xuất `openapi.json` tĩnh | Checklist bàn giao Tuần 6 |
@@ -80,16 +80,11 @@ flowchart TB
 
 **Mũi tên phụ thuộc luôn chỉ vào trong.** `app/domain` là lõi không phụ thuộc ai; adapter ở ngoài cùng phụ thuộc vào lõi, không bao giờ ngược lại. Đây chính là Dependency Inversion mà đề bài đòi hỏi.
 
-### ⚠️ Cái bẫy `__init__.py` — đọc kỹ, đây là lỗi dễ mắc nhất
+### Import qua `__init__.py`
 
-`app/repositories/__init__.py` **phải để trống**. Nếu ai đó viết cho tiện:
-
-```python
-# app/repositories/__init__.py  ← SAI
-from .user_repository import SqlAlchemyUserRepository
-```
-
-thì bất kỳ dòng `import app.repositories...` nào cũng kéo theo SQLAlchemy. Chỉ cần một import kiểu đó lọt vào tầng Service là **vi phạm yêu cầu bắt buộc của đề bài** mà mắt thường rất khó thấy — code vẫn chạy bình thường, chỉ mất điểm khi chấm. `import-linter` ở mục 14 bắt được ca này; chạy nó trong CI từ Tuần 3, đừng đợi Tuần 5.
+`app/repositories/__init__.py` hiện re-export các adapter SQLAlchemy để `api/deps.py` sử dụng.
+Service và Domain không được import package này, kể cả gián tiếp qua `__init__.py` của package khác.
+`import-linter` kiểm tra ranh giới này trong CI; các interface dùng chung nằm tại `domain/ports.py`.
 
 ---
 
@@ -97,11 +92,10 @@ thì bất kỳ dòng `import app.repositories...` nào cũng kéo theo SQLAlche
 
 ```
 app/
-├── main.py                  # tạo FastAPI app, gắn router + middleware + handler
+├── main.py                  # tạo app, gắn auth middleware + router + error handler
 ├── core/
 │   ├── config.py            # pydantic-settings, đọc .env
-│   ├── security.py          # hash/verify mật khẩu, encode/decode JWT
-│   └── logging.py           # cấu hình log (JSON log — điểm cộng A7)
+│   └── security.py          # hash/verify mật khẩu, encode/decode JWT
 ├── domain/                  # ❤️ LÕI — Python thuần, không phụ thuộc gì
 │   ├── entities.py          # User, FaceProfile, CheckInRecord (dataclass)
 │   ├── ports.py             # các ABC: *Repository, FaceEmbedder, PasswordHasher
@@ -109,26 +103,29 @@ app/
 ├── services/                # nghiệp vụ, Python thuần
 │   ├── user_service.py
 │   ├── face_profile_service.py
-│   └── checkin_service.py
+│   ├── check_in_service.py
+│   └── authorization.py    # quyền admin/chủ sở hữu và scope dữ liệu
 ├── models/                  # SQLAlchemy ORM models + Base + naming convention
 ├── repositories/            # adapter: implements *Repository bằng SQLAlchemy
-│   ├── __init__.py          # ⚠️ ĐỂ TRỐNG (xem mục 3)
+│   ├── __init__.py          # re-export adapter cho composition root
 │   ├── user_repository.py
 │   ├── face_profile_repository.py
-│   ├── checkin_repository.py
-│   └── mappers.py           # ORM ↔ domain entity
+│   ├── check_in_repository.py
+│   └── mappers.py           # ánh xạ ORM → domain, chuẩn hóa thời gian UTC
 ├── ml/                      # adapter: implements FaceEmbedder
 │   └── insightface_embedder.py
 ├── schemas/                 # Pydantic DTO cho request/response
 └── api/
-    ├── deps.py              # DI: get_db, get_current_user, factory các service
+    ├── authentication.py    # JWT backend, principal và lỗi AuthenticationMiddleware
+    ├── deps.py              # DI: get_session, đọc principal, factory các service
     ├── errors.py            # map domain error → HTTP status
-    ├── middleware.py        # request-id, logging, (tùy chọn) auth middleware
+    ├── uploads.py           # đọc và kiểm tra JPEG/PNG
     └── v1/
         ├── auth.py
         ├── users.py
         ├── face_profiles.py
-        └── checkins.py
+        ├── check_ins.py
+        └── router.py        # ghép các router dưới /api/v1
 
 alembic/                     # migration
 scripts/                     # seed data, manual_test_repo.py, benchmark
@@ -262,11 +259,11 @@ def register_face(
 
 | Port (ABC trong `domain/ports.py`) | Adapter Pha 1 | Adapter giả khi test | Đường thay ở Pha 2 |
 |---|---|---|---|
-| `UserRepository` | `repositories/user_repository.py` | dict trong bộ nhớ | thêm lớp cache Redis bọc ngoài |
+| `UserRepository` | `repositories/user_repository.py` | dict trong bộ nhớ | cache nếu có số đo chứng minh lợi ích |
 | `FaceProfileRepository` | `repositories/face_profile_repository.py` | dict trong bộ nhớ | cache embedding / ANN index |
-| `CheckInRepository` | `repositories/checkin_repository.py` | list trong bộ nhớ | async driver, ghi theo lô |
+| `CheckInRepository` | `repositories/check_in_repository.py` | list trong bộ nhớ | async driver, ghi theo lô |
 | `FaceEmbedder` | `ml/insightface_embedder.py` | trả vector cố định | ONNX + quantization int8 |
-| `PasswordHasher` | `core/security.py` (bcrypt/argon2) | hash giả, nhanh | — |
+| `PasswordHasher` | `core/security.py` (Argon2id, xác minh PBKDF2 cũ) | hash giả, nhanh | — |
 
 Cột cuối là lý do quan trọng nhất của toàn bộ thiết kế này: **mọi cải tiến Pha 2 đều thay được một adapter mà không đụng vào tầng Service.** Cột này cũng trả lời trước câu hỏi giảng viên hay hỏi: *"kiến trúc của em hỗ trợ cải tiến như thế nào?"*
 
@@ -310,14 +307,17 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant C as Client
+    participant MW as AuthenticationMiddleware
     participant Dep as get_current_user
     participant R as face_profiles router
     participant S as FaceProfileService
     participant E as FaceEmbedder
     participant Repo as FaceProfileRepository
 
-    C->>Dep: Bearer token + ảnh (multipart)
-    Dep-->>R: User (đã xác thực)
+    C->>MW: Bearer token + ảnh (multipart)
+    MW->>MW: Xác minh JWT, lookup user, đóng session đọc
+    MW->>Dep: request.user đã xác thực
+    Dep-->>R: Domain User từ principal
     R->>S: register_face(user.id, image_bytes)
     S->>E: embed(image_bytes)
     alt không thấy mặt
@@ -391,39 +391,38 @@ Nếu viết `if role == admin` trong router thì mỗi endpoint mới lại ph�
 
 ### Thiết kế
 
-```python
-# app/api/deps.py — viết MỘT LẦN
-oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
-
-
-def get_current_user(
-    token: str = Depends(oauth2),
-    users: UserRepository = Depends(get_user_repository),
-) -> User:
-    payload = decode_token(token)  # raise InvalidToken nếu hỏng/hết hạn
-    user = users.get(int(payload["sub"]))
-    if user is None:
-        raise InvalidCredentials()
-    return user
-
-
-def require_admin(current: User = Depends(get_current_user)) -> User:
-    if current.role != Role.ADMIN:
-        raise PermissionDenied()
-    return current
-```
-
-Gắn ở **cấp router**, không phải từng handler:
+Ứng dụng dùng `AuthenticationMiddleware` có sẵn của Starlette, đăng ký trong `main.py`:
 
 ```python
-# app/api/v1/checkins.py
-router = APIRouter(
-    prefix="/checkins",
-    dependencies=[Depends(get_current_user)],  # ← áp cho MỌI endpoint trong router
+app.add_middleware(
+    AuthenticationMiddleware,
+    backend=JWTAuthenticationBackend(get_session_factory),
+    on_error=authentication_error_response,
 )
 ```
 
-Với endpoint cần quyền admin (`DELETE /checkins/{id}`, `POST /users`), thêm `dependencies=[Depends(require_admin)]` ở chính route đó.
+`api/authentication.py` định nghĩa backend và principal:
+
+1. Không có Bearer credential: để request tiếp tục với principal chưa đăng nhập.
+2. Có Bearer token: kiểm tra JWT bằng `core/security.py`, lấy user hiện hành qua Repository.
+3. Gắn `AuthenticatedUser(domain_user)` vào `request.user`; role hiện hành trong DB quyết định quyền.
+4. Token lỗi/hết hạn hoặc user đã xóa: trả JSON `401`, header `WWW-Authenticate: Bearer`.
+
+`api/deps.py` chỉ đọc kết quả middleware và kiểm tra quyền:
+
+```python
+def get_current_user(request: Request, _token: TokenDependency) -> User:
+    principal = request.user
+    if not isinstance(principal, AuthenticatedUser):
+        raise InvalidToken()
+    return principal.user
+```
+
+`TokenDependency` dùng `OAuth2PasswordBearer` để yêu cầu bearer header và khai báo OAuth2 trên
+Swagger. Nó không decode JWT hay truy vấn DB. Endpoint dùng `CurrentUserDependency` hoặc
+`AdminUserDependency` trong tham số; không gắn auth chung cho router có cả route công khai/bảo vệ.
+JWT và user chỉ được xác minh một lần/request tại middleware. Role/ownership nghiệp vụ vẫn nằm
+trong Service/helper thuần Python.
 
 ### Bản đồ quyền
 
@@ -439,11 +438,19 @@ Với endpoint cần quyền admin (`DELETE /checkins/{id}`, `POST /users`), th�
 | `GET /checkins` 🔒 | user thường chỉ thấy của mình; admin thấy tất cả | **endpoint GET có auth #2** |
 | `DELETE /checkins/{id}` 🔒 | chỉ admin | |
 
-### Về chữ "middleware" trong đề bài
+### Session xác thực và endpoint công khai
 
-Đề bài viết "middleware/filter/interceptor". FastAPI dependency gắn ở cấp router **đúng tinh thần** (viết một lần, áp cho nhiều endpoint) và là cách làm chuẩn của framework này. Nếu muốn chắc chắn không bị trừ điểm vì câu chữ, bổ sung thêm một `BaseHTTPMiddleware` chặn tiền tố `/api/v1/protected/*`.
+Backend chạy xác minh token và lookup SQLAlchemy đồng bộ trong threadpool. Session đọc được
+khởi tạo, sử dụng và đóng trong cùng worker thread, trước khi gọi endpoint; chỉ domain entity
+được truyền qua request. Session ghi dữ liệu của endpoint được dependency quản lý riêng như cũ.
 
-> Nếu làm cả hai, **đừng để chúng trùng đường dẫn**. Middleware chạy trước, dependency chạy sau — cùng một path sẽ tra DB hai lần cho mỗi request, làm hỏng số liệu benchmark ở Tuần 6 theo cách rất khó truy.
+Middleware không giữ danh sách đường dẫn ngoại lệ. Request công khai không có Bearer credential
+không lookup user; endpoint được bảo vệ yêu cầu token qua dependency. Nếu client gửi Bearer token
+lỗi tới endpoint công khai, middleware vẫn trả `401`; client cần bỏ token lỗi để gọi ẩn danh.
+
+Cách này sử dụng middleware xác thực trực tiếp của framework theo đề bài. Không xác thực lại
+ở dependency hoặc handler. Test `test_authentication_middleware.py` đếm decode/lookup,
+kiểm tra role hiện hành, token lỗi/user bị xóa, route công khai và giữ thread DB ngoài event loop.
 
 ---
 
@@ -558,11 +565,13 @@ Toàn bộ cấu hình qua biến môi trường (`app/core/config.py` dùng `py
 | `SIMILARITY_THRESHOLD` | `0.40` | hiệu chỉnh ở Tuần 3 |
 | `EMBEDDING_MODEL` | `buffalo_s` | ghi vào từng `face_profiles.model_name` |
 | `MAX_UPLOAD_MB` | `5` | chặn trước khi chạm model |
-| `LOG_LEVEL` | `INFO` | |
 
 `.env.example` phải liệt kê **đủ** các biến trên kèm giá trị giả — đây là dòng bắt buộc trong checklist bàn giao. `.env` thật không bao giờ được commit.
 
-**docker-compose**: `app` + `db` (Postgres) + `redis` (khai báo sẵn cho Pha 2, Pha 1 chưa dùng). Migration chạy bằng lệnh riêng lúc khởi động container, không chạy `create_all()` — `create_all()` sẽ khiến schema thật và lịch sử migration lệch nhau, và nhóm nhận hệ thống sẽ dựng lại được DB.
+**Docker Compose**: chỉ gồm `app`, `postgres` và service `migrate` chạy một lần. App chờ migration
+thành công; không dựng hạ tầng dự phòng. Migration dùng Alembic, không chạy `create_all()`.
+Các cải tiến tiềm năng được ghi tại [phase-2-improvements.md](phase-2-improvements.md), chỉ bổ sung
+dependency khi triển khai cải tiến đã chọn.
 
 ---
 

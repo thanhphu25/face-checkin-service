@@ -1,16 +1,21 @@
 # Hợp đồng xác thực và phân quyền Tuần 4
 
 Ngày chốt kỹ thuật: 2026-09-21.
+Cập nhật cơ chế middleware: 2026-10-19.
 
-## 1. Dependency injection dùng chung
+## 1. Middleware xác thực và dependency dùng chung
 
-- API dùng `OAuth2PasswordBearer` và hai FastAPI dependency dùng chung:
-  `get_current_user` giải mã token rồi tải user hiện hành từ Repository;
-  `require_admin` dùng lại `get_current_user` và kiểm tra vai trò.
+- API dùng Starlette `AuthenticationMiddleware` với `JWTAuthenticationBackend`: giải mã và
+  kiểm tra Bearer JWT, tải user hiện hành từ Repository, gắn principal vào `request.user`.
+- `get_current_user` chỉ lấy domain user từ principal; `require_admin` kiểm tra vai trò.
+  `OAuth2PasswordBearer` yêu cầu bearer header và khai báo security trên Swagger.
 - Dependency được gắn ở từng route theo ma trận bên dưới. Một router có cả route công khai và
   route được bảo vệ nên không thể gắn một dependency xác thực cho toàn router.
-- Không thêm auth middleware. Dependency là cơ chế xác thực duy nhất, vì vậy một request không bị
-  giải mã token hoặc tra user trong database hai lần.
+- JWT và user chỉ xác minh trong middleware, một lần/request. Request không có Bearer credential
+  tiếp tục ở trạng thái chưa đăng nhập, dependency bảo vệ endpoint trả `401` khi cần. Bearer token
+  được gửi nhưng không hợp lệ trả JSON `401` kể cả trên endpoint công khai.
+- Session đọc user được tạo/đóng trong threadpool trước endpoint. Session nghiệp vụ và transaction
+  ghi dữ liệu vẫn do dependency quản lý riêng.
 - Handler chỉ nhận `current_user` đã xác thực. Logic ownership có ý nghĩa nghiệp vụ nằm trong
   Service; handler không tự decode JWT và không rải `if role == ...` ở các router.
 - Service chỉ phụ thuộc domain entity/port Python thuần, không import FastAPI, Starlette,

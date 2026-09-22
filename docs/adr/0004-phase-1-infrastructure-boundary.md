@@ -2,22 +2,23 @@
 
 - Status: Accepted
 - Date: 2026-09-22
+- Updated: 2026-10-19 — bỏ hạ tầng dự phòng chưa được ứng dụng sử dụng.
 
 ## Context
 
-Compose cần Redis để nhóm nhận hệ thống có hạ tầng sẵn cho một cải tiến khả dĩ, nhưng Pha 1 phải là
-baseline chức năng, chưa được tối ưu trước khi đo. Việc một service tồn tại trong Compose không có
-nghĩa application đã dùng nó.
+Pha 1 cần một baseline chức năng có thể dựng lại và đo được. Cấu hình ban đầu dựng Redis dự phòng
+nhưng ứng dụng không đọc/ghi Redis. Theo yêu cầu thu gọn Pha 1, chỉ giữ dependency đang phục vụ
+ứng dụng; hạ tầng cho cải tiến tương lai được bổ sung khi có use case và phép đo cụ thể.
 
 ## Decision
 
 - Pha 1 không dùng pgvector, FAISS, ANN index, async database hay Redis cache.
-- Redis 7.4 chỉ được dựng, healthcheck và expose port cấu hình được; app không nhận `REDIS_URL` và
-  không đọc/ghi Redis.
+- Compose chỉ gồm `app`, `migrate` và `postgres`. Bỏ service Redis, port dự phòng và bước ping Redis
+  trong CI; app không có cấu hình hoặc dependency Redis.
 - PostgreSQL giữ dữ liệu bền vững; model cache có named volume riêng. Migration chạy trong service
   one-shot duy nhất trước app để tránh nhiều replica tranh migration.
-- Không tuyên bố benchmark hoặc lựa chọn cải tiến Pha 2 cho đến khi Tuần 6 có baseline thật và nhóm
-  nhận hệ thống đo lại ở Tuần 7.
+- Chọn cải tiến Pha 2 sau khi đo lại baseline. Danh sách vấn đề và phương pháp đánh giá nằm tại
+  [phase-2-improvements.md](../phase-2-improvements.md).
 
 ## Alternatives considered
 
@@ -25,12 +26,13 @@ nghĩa application đã dùng nó.
   baseline mất ý nghĩa.
 - Thêm pgvector/FAISS ngay: tối ưu sớm và làm logic/hạ tầng Pha 1 phức tạp hơn.
 - Cho mỗi app replica tự chạy migration: ít service hơn nhưng có race khi scale.
-- Không dựng Redis: image nhỏ hơn, nhưng nhóm Pha 2 phải thay đổi Compose trước khi thử cache.
+- Giữ Redis chạy dự phòng: thuận tiện cho thử cache nhưng tiêu thụ RAM/CPU, mở thêm port và tăng
+  công việc vận hành mà chưa phục vụ request nào.
 
 ## Consequences
 
-- Redis tiêu thụ tài nguyên khi chạy full stack dù chưa phục vụ request; người vận hành có thể chỉ
-  khởi động dependency cần thiết khi phát triển cục bộ.
-- Pha 2 phải có test cache invalidation/fallback và benchmark trước/sau nếu quyết định nối Redis.
-- Quyết định cần xem lại sau baseline nếu bottleneck nằm ngoài cache/ANN, hoặc production không cho
-  phép vận hành một Redis chưa được sử dụng.
+- Stack Pha 1 không cần tải/chạy image Redis hoặc dành port cho một service chưa dùng.
+- Nếu Pha 2 chọn Redis, phải bổ sung service, cấu hình kết nối, test invalidation/fallback và
+  benchmark trước/sau trong cùng thay đổi; không chỉ dựng container dự phòng.
+- Quyết định cần xem lại khi đo được lợi ích cache hoặc có nhu cầu queue/rate limit cụ thể.
+- Các báo cáo kiểm chứng Tuần 5–6 giữ kết quả cấu hình cũ và có ghi chú lịch sử.

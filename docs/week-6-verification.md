@@ -2,6 +2,10 @@
 
 Ngày chạy cuối: 2026-09-22.
 
+> Báo cáo lịch sử của lần kiểm chứng trên. Từ đợt dọn Pha 1 ngày 2026-10-19,
+> Redis đã được bỏ khỏi Compose và CI; các kết quả Redis bên dưới chỉ mô tả cấu hình cũ.
+> Hướng dẫn chạy cấu hình hiện tại nằm trong [README](../README.md).
+
 ## Môi trường và phạm vi
 
 - Baseline: Kaggle CPU notebook, 4 core, Linux 6.12.90, Python 3.12.13, commit `4affbd0`.

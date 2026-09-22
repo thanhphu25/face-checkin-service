@@ -3,9 +3,12 @@
 Backend điểm danh bằng khuôn mặt dùng FastAPI, SQLAlchemy/Alembic, PostgreSQL và InsightFace. Tài
 liệu này dành cho người nhận project mà không cần hỏi lại tác giả.
 
-Trạng thái hiện tại: Pha 1 đã có Repository, API, JWT/RBAC, image Docker, Compose, integration test
-và seed dữ liệu mẫu tái lập. Benchmark baseline đang là công việc Tuần 6, chưa được tuyên bố hoàn
-thành.
+Trạng thái hiện tại: Pha 1 đã có Repository, API, JWT/RBAC, image Docker, Compose, integration test,
+seed dữ liệu mẫu tái lập và benchmark baseline Tuần 6 trên Kaggle CPU. Số liệu và giới hạn được ghi
+trong [báo cáo baseline](docs/benchmark-phase1.md).
+
+Chuẩn bị review online: [mô tả bài toán, nghiệp vụ, baseline và phân tích Pha 2](docs/review-phase1.md),
+kèm [đặc tả API](docs/api-spec.md) đối chiếu với code hiện tại.
 
 ## 1. Nghiệp vụ và phạm vi
 
@@ -18,7 +21,9 @@ embedding, so khớp với các profile cùng model/dimension và luôn ghi lạ
 | Pha 1 | CRUD `User`/`FaceProfile`/`CheckInRecord`, InsightFace CPU, JWT/RBAC, migration, Docker/Compose và baseline ở Tuần 6 | refresh token, liveness, cache, async DB, ANN index |
 | Pha 2 | Chỉ chọn 2–3 cải tiến sau khi đo lại baseline | Không mặc định Redis cache, pgvector/FAISS hay multi-worker trước khi có số liệu |
 
-Redis có trong Compose để chuẩn bị hạ tầng Pha 2 nhưng **application Pha 1 chưa sử dụng Redis**.
+Compose Pha 1 chỉ chạy `app`, `migrate` và `postgres`; không dựng hạ tầng dự phòng.
+Các vấn đề chính, bằng chứng và cách đánh giá cải tiến được tổng hợp tại
+[đề xuất Pha 2](docs/phase-2-improvements.md).
 
 ## 2. Kiến trúc
 
@@ -45,11 +50,13 @@ FaceEmbedder port ◀── app/ml/insightface_embedder.py (buffalo_s, CPU)
 
 Trách nhiệm chính:
 
-- API xác thực request, đọc upload, gọi Service và chuyển domain error sang HTTP.
+- `AuthenticationMiddleware` xác minh Bearer JWT và tải user hiện hành một lần/request.
+  Dependency lấy user từ `request.user`, kiểm tra quyền và khai báo OAuth2 cho Swagger.
+- API đọc upload, gọi Service và chuyển domain error sang HTTP.
 - Service chứa matching, role/ownership và use case; không import FastAPI, SQLAlchemy, ORM hay
   Pydantic schema. `import-linter` cưỡng chế ranh giới này.
-- Repository là nơi duy nhất chuyển ORM ↔ domain. Session/transaction theo request; Repository
-  `flush()`, dependency session commit/rollback.
+- Repository là nơi duy nhất chuyển ORM ↔ domain. Middleware đóng session đọc user trước khi
+  gọi endpoint; session nghiệp vụ theo request, Repository `flush()`, dependency commit/rollback.
 - Alembic là nguồn schema duy nhất. Compose chạy một service `migrate` trước app, không dùng
   `Base.metadata.create_all()`.
 
@@ -62,6 +69,7 @@ Sau khi chạy stack:
 - Swagger UI: <http://localhost:8000/docs>
 - OpenAPI JSON: <http://localhost:8000/openapi.json>
 - Health: <http://localhost:8000/health>
+- Hướng dẫn test thủ công từng API trên Swagger: [docs/swagger-api-testing.md](docs/swagger-api-testing.md)
 
 Bản OpenAPI tĩnh đã commit tại [docs/openapi.json](docs/openapi.json) để đọc contract mà không cần
 dựng stack. Sau khi đổi route hoặc schema, xuất lại bằng `uv run python -m scripts.export_openapi`;
@@ -103,7 +111,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 - Git.
 - Docker Engine/Desktop có Docker Compose v2 (`docker compose version`).
 - Tối thiểu vài GB dung lượng trống; dependency ML làm image lớn hơn web service thông thường.
-- Không cần cài Python, PostgreSQL hay Redis trên host.
+- Không cần cài Python hay PostgreSQL trên host.
 
 ### Clone và cấu hình
 
@@ -116,7 +124,7 @@ docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_
 ```
 
 Điền kết quả lệnh cuối vào `JWT_SECRET` trong `.env`, rồi đổi `POSTGRES_PASSWORD`. Không commit
-`.env`. Nếu host đang dùng các cổng mặc định, đổi `APP_PORT`, `POSTGRES_PORT` hoặc `REDIS_PORT`.
+`.env`. Nếu host đang dùng các cổng mặc định, đổi `APP_PORT` hoặc `POSTGRES_PORT`.
 
 ### Build, migration và khởi động
 
@@ -128,8 +136,7 @@ docker compose ps -a
 ```
 
 `up` chờ PostgreSQL healthy, chạy đúng một container `migrate` với `alembic upgrade head`, rồi mới
-khởi động app. `migrate` kết thúc với exit code 0 là trạng thái đúng. Redis khởi động độc lập và app
-không phụ thuộc Redis trong Pha 1.
+khởi động app. `migrate` kết thúc với exit code 0 là trạng thái đúng.
 
 Kiểm tra và xem log:
 
@@ -137,7 +144,7 @@ Kiểm tra và xem log:
 curl http://localhost:8000/health
 curl -fsS -o /dev/null http://localhost:8000/docs
 docker compose logs migrate
-docker compose logs --tail=100 app postgres redis
+docker compose logs --tail=100 app postgres
 ```
 
 Sau khi sửa migration, có thể chạy idempotent rồi restart app:
@@ -274,9 +281,7 @@ JWT_SECRET=... SEED_ADMIN_PASSWORD=... SEED_USER_PASSWORD=... \
 | `SIMILARITY_THRESHOLD` | `0.40` | Ngưỡng cosine tại thời điểm check-in |
 | `EMBEDDING_MODEL` | `buffalo_s` | Model ghi cùng face profile |
 | `MAX_UPLOAD_MB` | `5` | Giới hạn JPEG/PNG trước inference |
-| `LOG_LEVEL` | `INFO` | Mức log app |
 | `APP_PORT` | `8000` | Cổng HTTP trên host |
-| `REDIS_PORT` | `6379` | Cổng Redis dự phòng trên host |
 | `APP_IMAGE` | `face-checkin-service:local` | Tên/tag image do Compose build |
 
 `scripts/seed.py` tạo đúng hai tài khoản dưới đây. Email là cố định và nằm trong repo; mật khẩu do

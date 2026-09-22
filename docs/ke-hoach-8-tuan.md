@@ -77,13 +77,15 @@ Client (Swagger UI / Postman)
 ## A4. Bảo mật
 
 - Đăng nhập bằng JWT, hash mật khẩu bằng bcrypt/argon2.
-- Xác thực triển khai **một lần** dưới dạng FastAPI dependency (`Depends(get_current_user)`) gắn ở cấp router, **không copy code** vào từng handler. Có thể bổ sung `BaseHTTPMiddleware` chặn `/protected/*` để bám sát chữ "middleware" hơn.
+- Xác thực triển khai **một lần** qua Starlette `AuthenticationMiddleware`; dependency
+  `get_current_user` lấy principal, `require_admin` kiểm tra role. Gắn dependency theo từng
+  endpoint được bảo vệ; handler không decode JWT hoặc lookup user lại.
 - Phân quyền cơ bản (role `admin`/`user`).
 
 ## A5. Triển khai & Docker
 
 - `Dockerfile` multi-stage (build → runtime nhẹ, image nhỏ).
-- `docker-compose.yml`: app + PostgreSQL (+ Redis, chuẩn bị sẵn cho Pha 2 caching).
+- `compose.yaml`: app + PostgreSQL + migration; chỉ thêm hạ tầng Pha 2 khi cải tiến được chọn.
 - README.md gồm: sơ đồ kiến trúc, đặc tả API (link Swagger + bảng endpoint), hướng dẫn chạy (`docker compose up`), ADR ngắn gọn.
 
 ## A6. Kiểm thử tải trên Kaggle CPU

@@ -1,7 +1,8 @@
 import asyncio
 from datetime import UTC, datetime
 
-from app.api.deps import get_current_user, get_user_service
+from app.api.authentication import JWTAuthenticationBackend
+from app.api.deps import get_user_service
 from app.core.config import get_settings
 from app.core.security import decode_access_token
 from app.domain import AuthenticationFailed, Role, User
@@ -30,7 +31,9 @@ def test_login_returns_bearer_jwt_and_me_never_exposes_password_hash(monkeypatch
     service = AuthenticationServiceSpy()
     app = create_app()
     app.dependency_overrides[get_user_service] = lambda: service
-    app.dependency_overrides[get_current_user] = lambda: service.user
+    monkeypatch.setattr(
+        JWTAuthenticationBackend, "_authenticate_token", lambda self, token: service.user
+    )
 
     async def exercise_auth():
         from httpx2 import ASGITransport, AsyncClient

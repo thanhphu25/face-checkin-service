@@ -174,7 +174,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 
 ### B (chính)
 - [x] `Dockerfile` multi-stage (Python 3.12, frozen production dependencies, runtime non-root và stdlib healthcheck)
-- [x] `docker-compose.yml` (app + Postgres + Redis dự phòng Pha 2; migration là service một lần, Redis chưa được app sử dụng)
+- [x] `compose.yaml` (app + Postgres; migration là service một lần; không dựng hạ tầng dự phòng)
 - [x] Test trên môi trường máy sạch độc lập bằng GitHub-hosted Ubuntu runner — run `35703077030` build/up/verify/cleanup Compose thành công; đây là tiêu chí kỹ thuật thay thế được chủ project chấp thuận, không tuyên bố A/C đã test trên máy cá nhân
 
 ### C

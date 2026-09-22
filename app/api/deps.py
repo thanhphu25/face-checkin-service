@@ -2,16 +2,17 @@ from collections.abc import Iterator
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.api.authentication import AuthenticatedUser
 from app.core.config import get_settings
-from app.core.security import Argon2PasswordHasher, decode_access_token
+from app.core.security import Argon2PasswordHasher
 from app.domain.entities import Role, User
 from app.domain.errors import DomainError, InvalidToken, PermissionDenied
-from app.domain.ports import FaceEmbedder, PasswordHasher, UserRepository
+from app.domain.ports import FaceEmbedder, PasswordHasher
 from app.ml import InsightFaceEmbedder
 from app.repositories import (
     SQLAlchemyCheckInRepository,
@@ -103,18 +104,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 TokenDependency = Annotated[str, Depends(oauth2_scheme)]
 
 
-def get_current_user(token: TokenDependency, session: SessionDependency) -> User:
-    settings = get_settings()
-    claims = decode_access_token(
-        token=token,
-        secret=settings.jwt_secret,
-        algorithm=settings.jwt_algorithm,
-    )
-    users: UserRepository = SQLAlchemyUserRepository(session)
-    user = users.get(claims.user_id)
-    if user is None:
+def get_current_user(request: Request, _token: TokenDependency) -> User:
+    # OAuth2PasswordBearer declares Swagger security and requires a bearer header.
+    # JWT validation and user lookup have already run in AuthenticationMiddleware.
+    principal = request.user
+    if not isinstance(principal, AuthenticatedUser):
         raise InvalidToken()
-    return user
+    return principal.user
 
 
 CurrentUserDependency = Annotated[User, Depends(get_current_user)]

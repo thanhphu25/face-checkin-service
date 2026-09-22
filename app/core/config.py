@@ -18,7 +18,6 @@ class Settings(BaseSettings):
     embedding_model: str = "buffalo_s"
 
     max_upload_mb: int = 5
-    log_level: str = "INFO"
 
 
 @lru_cache

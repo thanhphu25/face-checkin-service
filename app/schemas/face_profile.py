@@ -1,10 +1,6 @@
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 
-class FaceProfileCreate(BaseModel):
-    image_bytes: bytes = Field(min_length=1, repr=False)
-
-
 class FaceProfileRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
