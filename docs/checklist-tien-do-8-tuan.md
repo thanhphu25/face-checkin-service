@@ -207,7 +207,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [x] Hỗ trợ A dựng môi trường chạy app trong Kaggle notebook ([benchmark-kaggle.md](benchmark-kaggle.md): 6 cell đã chạy thật; cell PostgreSQL sửa theo cluster 14 của image Kaggle)
 
 **C**
-- [ ] Viết báo cáo baseline (biểu đồ + nhận xét ngắn) đưa vào README (chờ A: bảng/CSV baseline)
+- [x] Viết báo cáo baseline (biểu đồ + nhận xét ngắn) đưa vào README ([benchmark-phase1.md](benchmark-phase1.md) đầy đủ; README mục 5 có bảng tóm tắt và ba nhận xét)
 
 ### Nửa cuối tuần — checklist bàn giao
 
@@ -239,7 +239,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 ### DoD cuối Tuần 6 (= Nộp/Bàn giao Pha 1)
 - [ ] Toàn bộ checklist bàn giao ở trên đã tick, có người ký tên phụ trách từng dòng (chờ A/B/C: tự xác nhận phần mình)
 - [ ] Repo gắn tag `v1.0-phase1` (chờ B: checklist bàn giao + CI xanh)
-- [ ] Báo cáo benchmark baseline đã có trong README hoặc `docs/benchmark-phase1.md` (chờ A: số liệu; C: báo cáo)
+- [x] Báo cáo benchmark baseline đã có trong README hoặc `docs/benchmark-phase1.md` (cả hai: README mục 5 tóm tắt, `docs/benchmark-phase1.md` phân tích đầy đủ)
 - [ ] Đã nhận hệ thống từ nhóm khác (chờ cả nhóm: bàn giao Pha 1 xong)
 
 ---
