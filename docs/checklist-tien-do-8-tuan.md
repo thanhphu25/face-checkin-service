@@ -198,8 +198,8 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 ### Nửa đầu tuần — benchmark
 
 **A (chính)**
-- [ ] Hoàn thiện script benchmark (chờ B: API/auth path ổn định; kế thừa khung Tuần 3)
-- [ ] Chạy trên Kaggle CPU notebook (chờ A: script benchmark; B: môi trường Kaggle)
+- [x] Hoàn thiện script benchmark (`scripts/benchmark.py` sweep concurrency, warm-up, settle, CPU system/process, CSV + metadata; `scripts/run_baseline.py` chạy trọn migration → seed → Uvicorn → đo; đã chạy thật cục bộ trên SQLite, chưa chạy trên Kaggle)
+- [ ] Chạy trên Kaggle CPU notebook (chờ A: script benchmark; B: môi trường Kaggle) — quy trình và các cell notebook đã có tại [benchmark-kaggle.md](benchmark-kaggle.md), chờ chạy thật
 - [ ] Đo p50/p95/p99 latency, throughput, CPU usage theo số concurrent users (sau A: app chạy ổn trên Kaggle)
 - [ ] Lưu kết quả dạng bảng/CSV (sau A: đo đủ chỉ số; giao C viết báo cáo)
 
