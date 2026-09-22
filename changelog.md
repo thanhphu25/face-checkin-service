@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — docs(checklist): record hosted clean-setup evidence
+
+- Ghi GitHub Actions run `35703077030`: bốn job xanh, gồm Compose build/up/migration/health/HTTP và cleanup trên hosted runner sạch.
+- Tick hai tiêu chí máy sạch Tuần 5 theo phương án thay thế được chủ project chấp thuận, không tuyên bố A/C đã test trên máy cá nhân.
+
 ## 2026-09-22 — ci: add hosted clean-compose verification
 
 - Thêm job dựng Compose từ đầu trên GitHub-hosted runner, xác minh migration/app/PostgreSQL/Redis/HTTP và kiểm tra cleanup tài nguyên cách ly.

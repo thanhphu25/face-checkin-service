@@ -118,8 +118,22 @@ Real-model E2E không chạy trong CI thường để tránh tải model nặng 
 kết quả mô phỏng cục bộ để tuyên bố GitHub Actions xanh. Sau push, GitHub Actions run
 [`35700197582`](https://github.com/thanhphu25/face-checkin-service/actions/runs/35700197582) của commit
 `909a1b6` đã hoàn tất thành công ở lần chạy đầu: `quality-and-sqlite`, `postgres-integration` và
-`docker-image` đều xanh. Một job `compose-clean-setup` được bổ sung ở follow-up commit để kiểm chứng
-toàn stack trên GitHub-hosted runner, thay vì suy diễn từ Docker image build.
+`docker-image` đều xanh.
+
+Follow-up commit `0b1ac68` kích hoạt GitHub Actions run
+[`35703077030`](https://github.com/thanhphu25/face-checkin-service/actions/runs/35703077030), hoàn tất
+thành công ngay lần chạy đầu với cả bốn job. Riêng job
+[`compose-clean-setup`](https://github.com/thanhphu25/face-checkin-service/actions/runs/35703077030/job/106665430253)
+chạy trên GitHub-hosted Ubuntu runner độc lập và xác nhận từng bước sau đều `success`:
+
+- validate Compose config;
+- build image từ đầu bằng `docker compose build --no-cache`;
+- `docker compose up -d --wait` cho app, migration, PostgreSQL và Redis;
+- revision `0002`, PostgreSQL dialect, Redis `PONG`, `/health` và `/openapi.json`;
+- `docker compose down -v --remove-orphans`;
+- không còn container hoặc volume mang label project `facecheckin_ci_clean`.
+
+Ba job còn lại (`quality-and-sqlite`, `postgres-integration`, `docker-image`) cũng đều `success`.
 
 ## Clean-directory / clean-setup
 
@@ -149,8 +163,11 @@ volume đều được kiểm tra có label `com.docker.compose.project=facechec
 `docker compose -p facecheckin_w5_clean_20260922 down -v --remove-orphans`, truy vấn theo label trả
 rỗng cho cả container và volume.
 
-Đây là clean-directory/clean-setup trên cùng máy, không phải xác nhận từ máy khác hoặc thành viên
-khác. Hai checkbox yêu cầu máy sạch trong nhóm vì vậy vẫn để chưa hoàn tất.
+Lượt `/tmp` ở trên chỉ là clean-directory/clean-setup trên cùng máy và tự nó không đủ để thay cho
+máy khác. Sau đó, GitHub Actions run `35703077030` đã chạy toàn bộ Compose trên GitHub-hosted runner
+sạch, tách biệt với máy phát triển. Chủ project chấp thuận dùng bằng chứng kỹ thuật này thay cho test
+chéo trên máy cá nhân của A/C; checklist nói rõ phương án thay thế và không tuyên bố thành viên A/C
+đã trực tiếp thực hiện.
 
 ## E2E thật và quality gates cuối
 
@@ -185,8 +202,8 @@ Hai hoạt động con người từ Tuần 4 đã được chủ project chấp
 [technical review auth có cấu trúc](week-4-auth-technical-review.md). Đây là tiêu chí thay thế, không
 phải tuyên bố pair session hoặc review chéo A/C của con người đã diễn ra.
 
-Các việc chưa được tài liệu này xác nhận và chưa được tick:
+Theo tiêu chí kỹ thuật thay thế đã được chủ project chấp thuận, không còn checkbox Tuần 4–5 nào
+thiếu bằng chứng. Các hoạt động sau vẫn không được tài liệu này tuyên bố là đã diễn ra:
 
-- Chạy Compose trên máy hoàn toàn khác/máy sạch của một thành viên A hoặc C.
 - Review README của A/B nếu nhóm yêu cầu biên bản xác nhận.
 - Seed toàn diện, benchmark/baseline, OpenAPI export và release/tag thuộc Tuần 6.
