@@ -1,138 +1,233 @@
 # Face Check-in Service
 
-Dịch vụ backend check-in/điểm danh bằng khuôn mặt. Đồ án kiến trúc phần mềm — đề bài gốc ở [docs/2026.md](docs/2026.md).
+Backend điểm danh bằng khuôn mặt dùng FastAPI, SQLAlchemy/Alembic, PostgreSQL và InsightFace. Tài
+liệu này dành cho người nhận project mà không cần hỏi lại tác giả.
 
-> ⚠️ **Trạng thái: Tuần 1/8 — mới có khung dự án.**
-> Hiện chỉ chạy được endpoint `/health` và Swagger UI. Chưa có nghiệp vụ, chưa có DB thật, chưa có auth.
-> Tiến độ chi tiết: [docs/checklist-tien-do-8-tuan.md](docs/checklist-tien-do-8-tuan.md)
+Trạng thái hiện tại: phần kỹ thuật Tuần 5/Pha 1 đã có Repository, API, JWT/RBAC, image Docker,
+Compose và integration test. Seed tái lập và benchmark baseline là công việc Tuần 6, chưa được tuyên
+bố hoàn thành.
 
-## Nghiệp vụ & phạm vi
+## 1. Nghiệp vụ và phạm vi
 
-Người dùng đăng ký khuôn mặt của mình một lần, sau đó check-in bằng cách đưa ảnh khuôn mặt — hệ thống sinh embedding, so khớp với các hồ sơ đã có, và ghi lại lượt check-in.
+Một user có thể đăng ký nhiều hồ sơ khuôn mặt. Khi một ảnh được gửi tới máy chấm công, hệ thống sinh
+embedding, so khớp với các profile cùng model/dimension và luôn ghi lại kết quả `success`,
+`unmatched` hoặc `no_face`.
 
-| Pha | Nội dung | Hạn |
+| Pha | Trong phạm vi | Ngoài phạm vi hiện tại |
 |---|---|---|
-| **Pha 1** | Xây hệ thống với chức năng cơ bản: CRUD 3 entity, phân tầng, auth, Docker, benchmark baseline | Cuối Tuần 6 |
-| **Pha 2** | Nhận hệ thống từ nhóm khác, chọn 2–3 cải tiến chất lượng, đo trước/sau | Cuối Tuần 8 |
+| Pha 1 | CRUD `User`/`FaceProfile`/`CheckInRecord`, InsightFace CPU, JWT/RBAC, migration, Docker/Compose và baseline ở Tuần 6 | refresh token, liveness, cache, async DB, ANN index |
+| Pha 2 | Chỉ chọn 2–3 cải tiến sau khi đo lại baseline | Không mặc định Redis cache, pgvector/FAISS hay multi-worker trước khi có số liệu |
 
-Ba entity chính: `User`, `FaceProfile` (hồ sơ khuôn mặt), `CheckInRecord` (lượt check-in).
+Redis có trong Compose để chuẩn bị hạ tầng Pha 2 nhưng **application Pha 1 chưa sử dụng Redis**.
 
-## Kiến trúc
+## 2. Kiến trúc
 
-Ba tầng, tầng nghiệp vụ là Python thuần — không import framework web hay thư viện DB:
+```text
+Client / Swagger
+       │ HTTP + JSON/multipart, OAuth2 bearer
+       ▼
+API layer             app/api, app/schemas
+       │ gọi use case, ánh xạ lỗi/DTO
+       ▼
+Service layer         app/services — Python thuần
+       │ chỉ phụ thuộc domain port
+       ▼
+Repository ports      app/domain
+       ▲
+       │ implements + ORM↔domain mapping
+SQLAlchemy adapters   app/repositories, app/models
+       │
+       ▼
+PostgreSQL (Compose/prod) / SQLite (test nhanh)
 
+FaceEmbedder port ◀── app/ml/insightface_embedder.py (buffalo_s, CPU)
 ```
-API Layer          FastAPI routers, Pydantic schemas, auth dependency
-    │              (app/api, app/schemas)
-    ▼
-Service Layer      Business logic thuần Python — KHÔNG import FastAPI/SQLAlchemy
-    │              (app/services, phụ thuộc ABC ở app/domain)
-    ▼
-Repository Layer   SQLAlchemy implementation, chuyển đổi ORM ↔ domain entity
-    │              (app/repositories, app/models)
-    ▼
-PostgreSQL / SQLite
-```
 
-Quy tắc phụ thuộc này được **CI kiểm tra tự động** bằng `import-linter` — xem [.importlinter](.importlinter).
+Trách nhiệm chính:
 
-Tài liệu đầy đủ:
-- [docs/architecture.md](docs/architecture.md) — phân tầng, luồng xử lý, auth, thuật toán so khớp
-- [docs/erd.md](docs/erd.md) — mô hình dữ liệu, DDL, quyết định lưu embedding
-- [docs/ke-hoach-8-tuan.md](docs/ke-hoach-8-tuan.md) — kế hoạch, API spec, RACI, rủi ro
+- API xác thực request, đọc upload, gọi Service và chuyển domain error sang HTTP.
+- Service chứa matching, role/ownership và use case; không import FastAPI, SQLAlchemy, ORM hay
+  Pydantic schema. `import-linter` cưỡng chế ranh giới này.
+- Repository là nơi duy nhất chuyển ORM ↔ domain. Session/transaction theo request; Repository
+  `flush()`, dependency session commit/rollback.
+- Alembic là nguồn schema duy nhất. Compose chạy một service `migrate` trước app, không dùng
+  `Base.metadata.create_all()`.
 
-## Yêu cầu môi trường
+Đọc sâu hơn tại [kiến trúc](docs/architecture.md), [ERD](docs/erd.md) và [ADR](docs/adr/).
 
-- **Python 3.12** (không dùng 3.13+ — wheel của onnxruntime/insightface thường ra chậm hơn)
-- Git
+## 3. API và quyền truy cập
 
-## Chạy thử
+Sau khi chạy stack:
+
+- Swagger UI: <http://localhost:8000/docs>
+- OpenAPI JSON: <http://localhost:8000/openapi.json>
+- Health: <http://localhost:8000/health>
+
+Nếu đổi `APP_PORT`, thay `8000` trong các URL bằng giá trị đó.
+
+| Method | Path | Quyền |
+|---|---|---|
+| GET | `/health` | Công khai |
+| POST | `/api/v1/auth/login` | Công khai; OAuth2 form, `username` chứa email |
+| GET | `/api/v1/auth/me` | User đã đăng nhập |
+| POST | `/api/v1/users` | Admin |
+| GET | `/api/v1/users` | Admin |
+| GET | `/api/v1/users/{id}` | Admin hoặc chính user |
+| DELETE | `/api/v1/users/{id}` | Admin |
+| POST | `/api/v1/face-profiles` | User đã đăng nhập; profile luôn thuộc current user |
+| GET | `/api/v1/face-profiles` | Admin xem/lọc tất cả; user chỉ thấy của mình |
+| DELETE | `/api/v1/face-profiles/{id}` | Admin hoặc chủ profile |
+| POST | `/api/v1/checkins` | Công khai; nhận JPEG/PNG multipart field `image` |
+| GET | `/api/v1/checkins` | Admin xem/lọc tất cả; user chỉ thấy lịch sử của mình |
+| GET | `/api/v1/checkins/{id}` | Admin hoặc user của record |
+| DELETE | `/api/v1/checkins/{id}` | Admin |
+
+Trong Swagger, chọn **Authorize**, nhập email vào `username` và mật khẩu vào `password`. Lệnh tương
+đương (chỉ chạy thành công sau khi đã có user hợp lệ):
 
 ```bash
-# 1. Tạo môi trường ảo + cài dependencies
-uv sync --python 3.12 --frozen --extra dev
-source .venv/bin/activate
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'username=admin.sample@example.test' \
+  --data-urlencode 'password=<MAT_KHAU_DO_BAN_CUNG_CAP>'
+```
 
-# Không dùng uv: python3.12 -m venv .venv, activate, rồi pip install -e ".[dev]"
+## 4. Chạy từ máy sạch bằng Docker Compose
 
-# 2. Tạo file cấu hình
+### Yêu cầu
+
+- Git.
+- Docker Engine/Desktop có Docker Compose v2 (`docker compose version`).
+- Tối thiểu vài GB dung lượng trống; dependency ML làm image lớn hơn web service thông thường.
+- Không cần cài Python, PostgreSQL hay Redis trên host.
+
+### Clone và cấu hình
+
+```bash
+git clone https://github.com/thanhphu25/face-checkin-service.git
+cd face-checkin-service
+git switch week5
 cp .env.example .env
-# Sinh JWT_SECRET rồi điền vào .env:
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-
-# 3. Chạy
-uvicorn app.main:app --reload
+docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-Mở http://127.0.0.1:8000/docs để xem Swagger UI.
+Điền kết quả lệnh cuối vào `JWT_SECRET` trong `.env`, rồi đổi `POSTGRES_PASSWORD`. Không commit
+`.env`. Nếu host đang dùng các cổng mặc định, đổi `APP_PORT`, `POSTGRES_PORT` hoặc `REDIS_PORT`.
+
+### Build, migration và khởi động
 
 ```bash
-curl http://127.0.0.1:8000/health
-# {"status":"ok"}
+docker compose config --quiet
+docker compose build
+docker compose up -d --wait
+docker compose ps -a
 ```
 
-> App sẽ **không khởi động** nếu thiếu `JWT_SECRET` trong `.env` — đây là chủ ý, để không bao giờ chạy với secret mặc định.
+`up` chờ PostgreSQL healthy, chạy đúng một container `migrate` với `alembic upgrade head`, rồi mới
+khởi động app. `migrate` kết thúc với exit code 0 là trạng thái đúng. Redis khởi động độc lập và app
+không phụ thuộc Redis trong Pha 1.
 
-## Kiểm tra chất lượng code
+Kiểm tra và xem log:
 
 ```bash
-ruff check .              # lint
-ruff format .             # format (thay cho black)
-lint-imports              # kiểm tra phân tầng — phải luôn 3/3 contract KEPT
-pytest -q                 # chạy test
+curl http://localhost:8000/health
+curl -fsS -o /dev/null http://localhost:8000/docs
+docker compose logs migrate
+docker compose logs --tail=100 app postgres redis
 ```
 
-Cài git hook để tự chạy khi commit (mỗi máy làm một lần):
+Sau khi sửa migration, có thể chạy idempotent rồi restart app:
 
 ```bash
-pre-commit install
+docker compose run --rm migrate
+docker compose restart app
 ```
 
-## Biến môi trường
+### Dừng và dọn đúng phạm vi
 
-Xem [.env.example](.env.example) để biết danh sách đầy đủ. Các biến quan trọng:
+Giữ dữ liệu PostgreSQL/model cache cho lần chạy sau:
 
-| Biến | Mặc định | Ghi chú |
+```bash
+docker compose down
+```
+
+Xóa cả dữ liệu **chỉ của project hiện tại**:
+
+```bash
+docker compose ls
+docker compose -p face-checkin-service down -v
+```
+
+Trước `down -v`, luôn đối chiếu project name trong `docker compose ls`; không dùng lệnh xóa volume
+toàn cục. Khi kiểm chứng/CI, đặt project riêng, ví dụ
+`docker compose -p facecheckin_w5_verify ...`, và chỉ `down -v` đúng tên đó.
+
+## 5. Test, quality gate và benchmark
+
+Chạy ngoài Docker bằng Python 3.12 và [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync --python 3.12 --frozen --extra dev
+JWT_SECRET=local-test-only uv run pytest -q
+uv run ruff check .
+uv run ruff format --check .
+uv run lint-imports
+git diff --check
+```
+
+Repository test luôn chạy SQLite. PostgreSQL cases ghi rõ `skipped` nếu không cấp database; để bắt
+buộc chạy thật như CI:
+
+```bash
+POSTGRES_TEST_DATABASE_URL='postgresql+psycopg://USER:PASSWORD@127.0.0.1:5432/facecheckin_test' \
+REQUIRE_POSTGRES_TESTS=1 \
+JWT_SECRET=local-test-only \
+uv run pytest -q tests/integration
+```
+
+Tên database PostgreSQL test bắt buộc chứa `test`. Hãy tạo database/container riêng, chạy migration
+và drop riêng nó; không trỏ lệnh này vào database dev.
+
+Benchmark Pha 1 sẽ được chạy và lưu số liệu trong **Tuần 6**. `scripts/benchmark.py` hiện mới là
+harness; README không công bố p50/p95/p99, throughput hay kết luận tối ưu khi chưa có phép đo thật.
+
+## 6. Quyết định thiết kế
+
+- [ADR 0001](docs/adr/0001-database-repository-and-migrations.md): PostgreSQL/SQLite,
+  SQLAlchemy Repository, Alembic và transaction.
+- [ADR 0002](docs/adr/0002-authentication-and-authorization.md): JWT/OAuth2 dependency,
+  Argon2id/PBKDF2 và ownership trong Service.
+- [ADR 0003](docs/adr/0003-face-embedding-and-storage.md): `buffalo_s` CPU, embedding
+  float32/L2/bytes cùng dimension/model name.
+- [ADR 0004](docs/adr/0004-phase-1-infrastructure-boundary.md): chưa dùng Redis cache,
+  pgvector/FAISS hay async DB trong Pha 1.
+
+## 7. Biến môi trường và tài khoản mẫu
+
+| Biến | Bắt buộc / mặc định | Mục đích |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:///./facecheckin.db` | Postgres khi chạy docker-compose |
-| `JWT_SECRET` | *(không có)* | **Bắt buộc** — thiếu thì app không khởi động |
-| `SIMILARITY_THRESHOLD` | `0.40` | Ngưỡng cosine, phải hiệu chỉnh ở Tuần 3 |
-| `EMBEDDING_MODEL` | `buffalo_s` | Chưa chốt chính thức |
+| `DATABASE_URL` | SQLite local mặc định; Compose tự tạo URL PostgreSQL | SQLAlchemy connection URL |
+| `POSTGRES_DB` | `facecheckin` | Database Compose |
+| `POSTGRES_USER` | `app` | User PostgreSQL Compose |
+| `POSTGRES_PASSWORD` | Bắt buộc với Compose | Password PostgreSQL; dùng giá trị riêng |
+| `POSTGRES_PORT` | `5432` | Cổng PostgreSQL trên host |
+| `JWT_SECRET` | Bắt buộc | Secret ký JWT; phải sinh ngẫu nhiên |
+| `JWT_ALGORITHM` | `HS256` | Thuật toán JWT được cho phép |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Tuổi access token |
+| `SIMILARITY_THRESHOLD` | `0.40` | Ngưỡng cosine tại thời điểm check-in |
+| `EMBEDDING_MODEL` | `buffalo_s` | Model ghi cùng face profile |
+| `MAX_UPLOAD_MB` | `5` | Giới hạn JPEG/PNG trước inference |
+| `LOG_LEVEL` | `INFO` | Mức log app |
+| `APP_PORT` | `8000` | Cổng HTTP trên host |
+| `REDIS_PORT` | `6379` | Cổng Redis dự phòng trên host |
+| `APP_IMAGE` | `face-checkin-service:local` | Tên/tag image do Compose build |
 
-## Cấu trúc thư mục
+Tài khoản dưới đây mới là **contract/placeholder**. Seed Tuần 6 chưa tồn tại, nên clone sạch chưa thể
+đăng nhập bằng chúng cho tới khi seed được triển khai hoặc người vận hành tự tạo user an toàn.
 
-```
-app/
-├── main.py           # FastAPI app
-├── core/config.py    # cấu hình từ .env (pydantic-settings)
-├── domain/           # entity + ABC (port) — Python thuần, chưa có nội dung
-├── services/         # nghiệp vụ — Python thuần, chưa có nội dung
-├── models/           # SQLAlchemy ORM models (draft theo ERD)
-├── repositories/     # adapter SQLAlchemy — chưa có nội dung
-├── ml/               # adapter sinh embedding — chưa có nội dung
-├── schemas/          # Pydantic DTO — chưa có nội dung
-└── api/              # routers, DI, exception handlers — chưa có nội dung
-alembic/              # migration (đã init, chưa có migration nào)
-docs/                 # tài liệu thiết kế & kế hoạch
-tests/                # unit / integration / api
-```
+| Tên | Email placeholder | Role | Mật khẩu |
+|---|---|---|---|
+| Admin mẫu | `admin.sample@example.test` | `admin` | Người chạy tự cung cấp, không lưu trong repo |
+| User mẫu | `user.sample@example.test` | `user` | Người chạy tự cung cấp, không lưu trong repo |
 
-## Đã làm được gì đến hiện tại
-
-| Hạng mục | Trạng thái |
-|---|---|
-| Tài liệu kiến trúc + ERD | ✅ xong |
-| Khung package 3 tầng | ✅ xong |
-| Cấu hình qua `.env` (pydantic-settings) | ✅ xong |
-| SQLAlchemy models | ✅ draft theo ERD (chưa có migration) |
-| Alembic | ✅ đã init và nối vào config/models |
-| FastAPI app + `/health` + Swagger | ✅ chạy được |
-| Lint + format + kiểm tra phân tầng trong CI | ✅ xong, đang xanh |
-| Repository / Service / API nghiệp vụ | ❌ Tuần 2–3 |
-| Auth JWT + RBAC | ❌ Tuần 4 |
-| Docker / docker-compose | ❌ Tuần 5 |
-| Benchmark trên Kaggle CPU | ❌ Tuần 6 |
-
-## Ghi chú cho người đọc sau
-
-Các mục sau sẽ được bổ sung đúng tuần theo kế hoạch, hiện **cố ý chưa có**: bảng đặc tả endpoint đầy đủ, hướng dẫn `docker compose up`, kết quả benchmark baseline, ADR, tài khoản mẫu để đăng nhập thử.
+Không commit password, JWT, token, ảnh mặt, `.env`, database, model cache hay file ONNX tải về.
