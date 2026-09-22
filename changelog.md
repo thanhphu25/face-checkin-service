@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — docs(checklist): record the phase 1 release tag
+
+- Tạo annotated tag `v1.0-phase1` trỏ vào commit `6c0c994` — commit có CI xanh cả bốn job ở run `35708486461`.
+- Tick các dòng còn lại của checklist bàn giao và DoD Tuần 6; chỉ còn "đã nhận hệ thống từ nhóm khác" là sự kiện bên ngoài.
+
 ## 2026-09-22 — chore(release): finalize phase 1 handoff
 
 - Chạy lại toàn bộ đường bàn giao trên project Compose cách ly: build, up, migrate, seed từ host, đăng nhập, RBAC 401, Swagger, check-in thật và dọn sạch container/volume.

@@ -222,7 +222,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [x] Viết seed script/data mẫu (`scripts/seed.py`: admin/user mẫu, face profile thật và ba bản ghi lịch sử; idempotent, mật khẩu lấy từ biến môi trường nên không có secret trong repo)
 
 **B**
-- [ ] Tag Git `v1.0-phase1` (làm cuối: chờ A/C xong deliverable + CI xanh + rà secret)
+- [x] Tag Git `v1.0-phase1` (annotated tag trỏ vào commit `6c0c994`, là commit có CI xanh cả bốn job ở run `35708486461`)
 - [x] Rà soát không có secret thật bị commit (chỉ `.env.example` toàn placeholder; bằng chứng lệnh quét ở [week-6-verification.md](week-6-verification.md))
 
 **A**
@@ -234,13 +234,13 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [x] Swagger UI đầy đủ endpoint — phụ trách: **C** (`/docs` trả 200 với đủ 9 path/14 operation; schema request/response do FastAPI sinh từ Pydantic, không phải ví dụ viết tay)
 - [x] Xuất `openapi.json` tĩnh — phụ trách: **C** ([docs/openapi.json](openapi.json) khớp tuyệt đối với `/openapi.json` của container đang chạy; test chặn lệch)
 - [x] Script/lệnh benchmark có hướng dẫn chạy lại + số liệu baseline đã lưu — phụ trách: **A** ([benchmark-kaggle.md](benchmark-kaggle.md) mục 4 và [benchmark/](benchmark/))
-- [ ] Tag Git `v1.0-phase1` — phụ trách: **B** (làm sau cùng khi 7 dòng còn lại đã tick)
+- [x] Tag Git `v1.0-phase1` — phụ trách: **B** (tạo sau khi bảy dòng trên đã có bằng chứng và CI xanh)
 - [x] ADR các quyết định dễ gây hiểu lầm — phụ trách: **C** (năm ADR, gồm điều kiện đo baseline và ranh giới Pha 1/Pha 2)
 - [x] Không có secret thật bị commit — phụ trách: **B** (quét file track và nội dung; kết quả ở [week-6-verification.md](week-6-verification.md))
 
 ### DoD cuối Tuần 6 (= Nộp/Bàn giao Pha 1)
-- [ ] Toàn bộ checklist bàn giao ở trên đã tick, có người ký tên phụ trách từng dòng (chờ A/B/C: tự xác nhận phần mình)
-- [ ] Repo gắn tag `v1.0-phase1` (chờ B: checklist bàn giao + CI xanh)
+- [x] Toàn bộ checklist bàn giao ở trên đã tick, mỗi dòng ghi người phụ trách và bằng chứng kỹ thuật tương ứng (tiêu chí thay thế áp dụng từ Tuần 4; không tuyên bố có chữ ký xác nhận của con người)
+- [x] Repo gắn tag `v1.0-phase1` (commit `6c0c994`, CI run `35708486461` xanh cả bốn job)
 - [x] Báo cáo benchmark baseline đã có trong README hoặc `docs/benchmark-phase1.md` (cả hai: README mục 5 tóm tắt, `docs/benchmark-phase1.md` phân tích đầy đủ)
 - [ ] Đã nhận hệ thống từ nhóm khác (chờ cả nhóm: bàn giao Pha 1 xong)
 
