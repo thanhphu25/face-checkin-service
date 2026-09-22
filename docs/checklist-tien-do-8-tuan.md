@@ -170,7 +170,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [x] Integration test cho Repository (SQLite/Postgres test container) (Repository/mapping/migration thật; PostgreSQL database kiểm chứng cách ly)
 
 ### B (chính)
-- [ ] `Dockerfile` multi-stage (chờ Tuần 4: dependencies/app ổn định)
+- [x] `Dockerfile` multi-stage (Python 3.12, frozen production dependencies, runtime non-root và stdlib healthcheck)
 - [ ] `docker-compose.yml` (app + Postgres + Redis dự phòng Pha 2) (sau B: `Dockerfile`; chờ A: migration Postgres)
 - [ ] Test lại trên máy khác/máy sạch trong nhóm (chờ B: docker-compose; nhờ A hoặc C test chéo)
 
