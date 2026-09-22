@@ -11,6 +11,12 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — docs(handoff): document benchmark reproduction
+
+- Liệt kê đủ gói bàn giao benchmark: harness, runner, seed, nguồn ảnh mẫu và số liệu Tuần 6.
+- Thêm lệnh smoke chạy được ngoài Kaggle trong khoảng một phút, đã chạy đúng nguyên văn trước khi ghi vào tài liệu.
+- Chốt 5 điều kiện để một lượt đo Tuần 8 được coi là so sánh được với baseline Tuần 6.
+
 ## 2026-09-22 — docs(benchmark): report phase 1 baseline
 
 - Thêm `docs/benchmark-phase1.md`: bảng, biểu đồ throughput/p50 cho hai scenario và hai backend, nhận xét và giới hạn của baseline.

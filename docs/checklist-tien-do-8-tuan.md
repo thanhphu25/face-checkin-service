@@ -224,7 +224,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [ ] Rà soát không có secret thật bị commit (làm trước B: tag `v1.0-phase1`)
 
 **A**
-- [ ] Đóng gói script + số liệu benchmark kèm hướng dẫn chạy lại rõ ràng (sau A: benchmark; nhờ B/C chạy thử hướng dẫn)
+- [x] Đóng gói script + số liệu benchmark kèm hướng dẫn chạy lại rõ ràng ([benchmark-kaggle.md](benchmark-kaggle.md) mục 4: danh mục gói, lệnh smoke đã chạy đúng nguyên văn và 5 điều kiện để lượt đo Tuần 8 so sánh được)
 
 ### Checklist bàn giao Pha 1 (ký xác nhận trước khi tag)
 - [ ] `docker compose up` chạy được trên máy hoàn toàn sạch — phụ trách: **B** (chờ A/C: migration + seed sẵn sàng)
