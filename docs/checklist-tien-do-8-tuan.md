@@ -167,7 +167,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 > Mục tiêu: `docker compose up` chạy được từ máy sạch.
 
 ### A
-- [ ] Integration test cho Repository (SQLite/Postgres test container) (chờ B: Postgres trong docker-compose; sau A: repository + migration)
+- [x] Integration test cho Repository (SQLite/Postgres test container) (Repository/mapping/migration thật; PostgreSQL database kiểm chứng cách ly)
 
 ### B (chính)
 - [ ] `Dockerfile` multi-stage (chờ Tuần 4: dependencies/app ổn định)
