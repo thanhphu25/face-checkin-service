@@ -3,9 +3,9 @@
 Backend điểm danh bằng khuôn mặt dùng FastAPI, SQLAlchemy/Alembic, PostgreSQL và InsightFace. Tài
 liệu này dành cho người nhận project mà không cần hỏi lại tác giả.
 
-Trạng thái hiện tại: phần kỹ thuật Tuần 5/Pha 1 đã có Repository, API, JWT/RBAC, image Docker,
-Compose và integration test. Seed tái lập và benchmark baseline là công việc Tuần 6, chưa được tuyên
-bố hoàn thành.
+Trạng thái hiện tại: Pha 1 đã có Repository, API, JWT/RBAC, image Docker, Compose, integration test
+và seed dữ liệu mẫu tái lập. Benchmark baseline đang là công việc Tuần 6, chưa được tuyên bố hoàn
+thành.
 
 ## 1. Nghiệp vụ và phạm vi
 
@@ -143,6 +143,29 @@ docker compose run --rm migrate
 docker compose restart app
 ```
 
+### Seed dữ liệu mẫu
+
+Stack vừa dựng có schema nhưng chưa có tài khoản nào. `scripts/seed.py` tạo admin mẫu, user mẫu, một
+face profile thật và ba bản ghi lịch sử (`success`, `unmatched`, `no_face`). Script idempotent: chạy
+lại không nhân đôi dữ liệu.
+
+Seed chạy từ môi trường dev trên host, không chạy trong container: ảnh khuôn mặt mẫu lấy từ package
+InsightFace đã cài, còn runtime image cố ý loại bỏ `scripts/` và thư mục ảnh đó. Compose đã publish
+cổng PostgreSQL nên host kết nối thẳng vào database của stack:
+
+```bash
+uv sync --python 3.12 --frozen --extra dev
+export SEED_ADMIN_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+export SEED_USER_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+DATABASE_URL="postgresql+psycopg://app:<POSTGRES_PASSWORD>@localhost:5432/facecheckin" \
+JWT_SECRET=<JWT_SECRET trong .env> \
+  uv run python -m scripts.seed
+```
+
+Ghi lại hai mật khẩu vừa sinh ở nơi an toàn — chúng chỉ tồn tại trong shell của bạn, repo không lưu.
+Thêm `--skip-face-profile` nếu chỉ cần tài khoản và không muốn tải model embedding; khi đó check-in
+sẽ trả `unmatched` vì chưa có profile nào.
+
 ### Dừng và dọn đúng phạm vi
 
 Giữ dữ liệu PostgreSQL/model cache cho lần chạy sau:
@@ -222,12 +245,12 @@ harness; README không công bố p50/p95/p99, throughput hay kết luận tối
 | `REDIS_PORT` | `6379` | Cổng Redis dự phòng trên host |
 | `APP_IMAGE` | `face-checkin-service:local` | Tên/tag image do Compose build |
 
-Tài khoản dưới đây mới là **contract/placeholder**. Seed Tuần 6 chưa tồn tại, nên clone sạch chưa thể
-đăng nhập bằng chúng cho tới khi seed được triển khai hoặc người vận hành tự tạo user an toàn.
+`scripts/seed.py` tạo đúng hai tài khoản dưới đây. Email là cố định và nằm trong repo; mật khẩu do
+người chạy cung cấp qua biến môi trường, tối thiểu 12 ký tự, và không bao giờ được commit.
 
-| Tên | Email placeholder | Role | Mật khẩu |
+| Tên | Email | Role | Mật khẩu |
 |---|---|---|---|
-| Admin mẫu | `admin.sample@example.test` | `admin` | Người chạy tự cung cấp, không lưu trong repo |
-| User mẫu | `user.sample@example.test` | `user` | Người chạy tự cung cấp, không lưu trong repo |
+| Admin mẫu | `admin.sample@example.test` | `admin` | `SEED_ADMIN_PASSWORD`, người chạy tự sinh |
+| User mẫu | `user.sample@example.test` | `user` | `SEED_USER_PASSWORD`, người chạy tự sinh |
 
 Không commit password, JWT, token, ảnh mặt, `.env`, database, model cache hay file ONNX tải về.

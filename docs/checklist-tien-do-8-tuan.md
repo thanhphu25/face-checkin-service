@@ -217,7 +217,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 **C (chính)**
 - [ ] Hoàn thiện ADR (chờ A/B: review quyết định DB/auth/triển khai)
 - [ ] Xuất `openapi.json` tĩnh (chờ B: API + auth hoàn tất)
-- [ ] Viết seed script/data mẫu (chờ A: schema/migration cuối; B: hash password)
+- [x] Viết seed script/data mẫu (`scripts/seed.py`: admin/user mẫu, face profile thật và ba bản ghi lịch sử; idempotent, mật khẩu lấy từ biến môi trường nên không có secret trong repo)
 
 **B**
 - [ ] Tag Git `v1.0-phase1` (làm cuối: chờ A/C xong deliverable + CI xanh + rà secret)

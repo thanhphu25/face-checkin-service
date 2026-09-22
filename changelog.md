@@ -11,6 +11,12 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — feat(seed): add reproducible sample data
+
+- Thêm `scripts/seed.py` tạo admin/user mẫu, face profile thật và lịch sử `success`/`unmatched`/`no_face`; chạy lại không nhân đôi dữ liệu.
+- Mật khẩu seed đọc từ `SEED_ADMIN_PASSWORD`/`SEED_USER_PASSWORD` và bị từ chối nếu thiếu hoặc quá ngắn; repo không chứa giá trị thật.
+- Tách ảnh mẫu InsightFace thành `scripts/sample_images.py` dùng chung cho seed/benchmark, và ghi cách seed vào README cùng `.env.example`.
+
 ## 2026-09-22 — ci: run pipeline on the week 6 branch
 
 - Thêm `week6` vào push trigger để pipeline chạy trước khi tag `v1.0-phase1`, thay vì chỉ chạy qua pull request.
