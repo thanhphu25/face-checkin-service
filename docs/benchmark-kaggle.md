@@ -67,6 +67,9 @@ Kaggle chạy dưới quyền root nên cài được PostgreSQL trực tiếp. 
 cluster **14**, không phải 16, nên dùng `service postgresql start` để không phải gắn cứng số version;
 `pg_lsclusters` cho biết cluster thật nếu cần kiểm tra.
 
+Mật khẩu `bench-local-only` dưới đây là giá trị dùng một lần cho một PostgreSQL chỉ sống trong phiên
+notebook và chỉ nghe trên `127.0.0.1`. Không dùng lại nó ở bất kỳ môi trường nào khác.
+
 ```python
 !apt-get -qq update && apt-get -qq install -y postgresql postgresql-contrib
 !service postgresql start

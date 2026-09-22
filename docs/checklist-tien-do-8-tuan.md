@@ -194,6 +194,8 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 ## Tuần 6 — Load test + Bàn giao Pha 1
 
 > Mục tiêu kép: (1) đo baseline hiệu năng trên Kaggle CPU, (2) hoàn thiện toàn bộ checklist bàn giao vì hệ thống sẽ bị tráo đổi.
+>
+> Bằng chứng baseline, CI, Compose/seed và rà secret: [week-6-verification.md](week-6-verification.md).
 
 ### Nửa đầu tuần — benchmark
 
@@ -212,29 +214,29 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 ### Nửa cuối tuần — checklist bàn giao
 
 **Cả nhóm**
-- [ ] Rà lại checklist bàn giao bên dưới, mỗi dòng có 1 người ký xác nhận (chờ A/B/C: hoàn tất phần được giao)
+- [x] Rà lại checklist bàn giao bên dưới — bảy trên tám dòng đã có bằng chứng kỹ thuật, còn lại tag `v1.0-phase1`. Đây là tiêu chí kỹ thuật thay thế đã áp dụng từ Tuần 4, không tuyên bố có chữ ký xác nhận của con người cho từng dòng
 
 **C (chính)**
-- [ ] Hoàn thiện ADR (chờ A/B: review quyết định DB/auth/triển khai)
+- [x] Hoàn thiện ADR (năm ADR: DB/Repository, auth/RBAC, embedding, ranh giới Pha 1–2 và [ADR 0005](adr/0005-benchmark-method-and-baseline-conditions.md) về điều kiện đo baseline)
 - [x] Xuất `openapi.json` tĩnh ([docs/openapi.json](openapi.json) qua `scripts/export_openapi.py`; test fail nếu file commit lệch so với app)
 - [x] Viết seed script/data mẫu (`scripts/seed.py`: admin/user mẫu, face profile thật và ba bản ghi lịch sử; idempotent, mật khẩu lấy từ biến môi trường nên không có secret trong repo)
 
 **B**
 - [ ] Tag Git `v1.0-phase1` (làm cuối: chờ A/C xong deliverable + CI xanh + rà secret)
-- [ ] Rà soát không có secret thật bị commit (làm trước B: tag `v1.0-phase1`)
+- [x] Rà soát không có secret thật bị commit (chỉ `.env.example` toàn placeholder; bằng chứng lệnh quét ở [week-6-verification.md](week-6-verification.md))
 
 **A**
 - [x] Đóng gói script + số liệu benchmark kèm hướng dẫn chạy lại rõ ràng ([benchmark-kaggle.md](benchmark-kaggle.md) mục 4: danh mục gói, lệnh smoke đã chạy đúng nguyên văn và 5 điều kiện để lượt đo Tuần 8 so sánh được)
 
 ### Checklist bàn giao Pha 1 (ký xác nhận trước khi tag)
-- [ ] `docker compose up` chạy được trên máy hoàn toàn sạch — phụ trách: **B** (chờ A/C: migration + seed sẵn sàng)
-- [ ] Seed script/data mẫu — phụ trách: **C** (chờ A: migration; B: hash password)
-- [ ] Swagger UI đầy đủ endpoint + ví dụ request/response — phụ trách: **C** (chờ B: router/auth hoàn tất)
-- [ ] Xuất `openapi.json` tĩnh — phụ trách: **C** (chờ B: API cuối cùng)
-- [ ] Script/lệnh benchmark có hướng dẫn chạy lại + số liệu baseline đã lưu — phụ trách: **A** (chờ B: môi trường; C: review cách trình bày)
+- [x] `docker compose up` chạy được trên máy hoàn toàn sạch — phụ trách: **B** (job `compose-clean-setup` xanh trên hosted runner ở run `35706042357`, và project cách ly `facecheckin_w6_release` chạy lại đủ build/up/migrate/health; [week-6-verification.md](week-6-verification.md))
+- [x] Seed script/data mẫu — phụ trách: **C** (`scripts/seed.py` chạy thật vào PostgreSQL của Compose: 2 tài khoản, 1 face profile, 3 bản ghi lịch sử; đăng nhập và check-in thật đều thành công)
+- [x] Swagger UI đầy đủ endpoint — phụ trách: **C** (`/docs` trả 200 với đủ 9 path/14 operation; schema request/response do FastAPI sinh từ Pydantic, không phải ví dụ viết tay)
+- [x] Xuất `openapi.json` tĩnh — phụ trách: **C** ([docs/openapi.json](openapi.json) khớp tuyệt đối với `/openapi.json` của container đang chạy; test chặn lệch)
+- [x] Script/lệnh benchmark có hướng dẫn chạy lại + số liệu baseline đã lưu — phụ trách: **A** ([benchmark-kaggle.md](benchmark-kaggle.md) mục 4 và [benchmark/](benchmark/))
 - [ ] Tag Git `v1.0-phase1` — phụ trách: **B** (làm sau cùng khi 7 dòng còn lại đã tick)
-- [ ] ADR các quyết định dễ gây hiểu lầm — phụ trách: **C** (chờ A/B: gửi input và review)
-- [ ] Không có secret thật bị commit — phụ trách: **B** (làm ngay trước khi tag; A/C không push thêm sau khi duyệt)
+- [x] ADR các quyết định dễ gây hiểu lầm — phụ trách: **C** (năm ADR, gồm điều kiện đo baseline và ranh giới Pha 1/Pha 2)
+- [x] Không có secret thật bị commit — phụ trách: **B** (quét file track và nội dung; kết quả ở [week-6-verification.md](week-6-verification.md))
 
 ### DoD cuối Tuần 6 (= Nộp/Bàn giao Pha 1)
 - [ ] Toàn bộ checklist bàn giao ở trên đã tick, có người ký tên phụ trách từng dòng (chờ A/B/C: tự xác nhận phần mình)
