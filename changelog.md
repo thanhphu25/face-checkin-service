@@ -11,6 +11,12 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — perf(benchmark): finalize Kaggle CPU harness
+
+- Nâng `scripts/benchmark.py` từ scaffold Tuần 3 thành harness baseline: sweep nhiều mức concurrency, warm-up riêng, hai scenario `checkin`/`history`, CSV kết quả và metadata phần cứng/tham số.
+- Đo CPU toàn máy và CPU riêng tiến trình server từ `/proc`; bỏ qua cửa sổ quá ngắn và chờ `--settle-seconds` sau warm-up để thread pool ONNX không bị tính sang mức đo kế tiếp.
+- Thêm `scripts/run_baseline.py` chạy trọn migration → seed → Uvicorn một worker → benchmark → dừng server, và hướng dẫn Kaggle CPU cho cả SQLite lẫn PostgreSQL.
+
 ## 2026-09-22 — feat(seed): add reproducible sample data
 
 - Thêm `scripts/seed.py` tạo admin/user mẫu, face profile thật và lịch sử `success`/`unmatched`/`no_face`; chạy lại không nhân đôi dữ liệu.
