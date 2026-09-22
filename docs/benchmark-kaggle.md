@@ -17,8 +17,14 @@ máy, số liệu trước/sau không so sánh được.
 | Database | SQLite và PostgreSQL | Chạy hai lượt riêng, ghi hai file CSV riêng |
 | Model | `buffalo_s`, CPU | Tải lần đầu ở bước warm-up |
 
-Số core Kaggle cấp được ghi vào `cpu_count` trong file metadata; luôn đọc `cpu_percent_*` cùng với
-giá trị đó vì CPU được báo theo phần trăm **của một core** (1200% = 12 core bận).
+Hai cột CPU có đơn vị khác nhau, đọc nhầm là hiểu sai toàn bộ kết quả:
+
+- `cpu_percent_system` — phần trăm của **toàn máy**, 0–100%. 99% nghĩa là mọi core đều bận.
+- `cpu_percent_server` — phần trăm của **một core**, vượt 100% được. 389% nghĩa là tiến trình
+  Uvicorn chiếm 3,89 core.
+
+Số core Kaggle cấp nằm ở `cpu_count` trong file metadata; luôn đọc `cpu_percent_server` cùng giá trị
+đó.
 
 ## 2. Các cell trong notebook
 
@@ -57,14 +63,15 @@ os.environ["SEED_USER_PASSWORD"] = secrets.token_urlsafe(24)
 
 ### Cell 4 — PostgreSQL trong notebook
 
-Kaggle chạy dưới quyền root nên cài được PostgreSQL trực tiếp. Nếu tên cluster khác `16/main`, đọc
-lại bằng `pg_lsclusters`.
+Kaggle chạy dưới quyền root nên cài được PostgreSQL trực tiếp. Image Kaggle ngày 2026-09-22 cài
+cluster **14**, không phải 16, nên dùng `service postgresql start` để không phải gắn cứng số version;
+`pg_lsclusters` cho biết cluster thật nếu cần kiểm tra.
 
 ```python
 !apt-get -qq update && apt-get -qq install -y postgresql postgresql-contrib
-!pg_ctlcluster 16 main start
-!su postgres -c "psql -c \"CREATE USER bench WITH PASSWORD 'bench-local-only';\""
-!su postgres -c "psql -c 'CREATE DATABASE facecheckin_bench OWNER bench;'"
+!service postgresql start
+!su - postgres -c "psql -c \"CREATE USER bench WITH PASSWORD 'bench-local-only';\""
+!su - postgres -c "psql -c 'CREATE DATABASE facecheckin_bench OWNER bench;'"
 ```
 
 ### Cell 5 — baseline PostgreSQL
@@ -100,8 +107,8 @@ Mỗi dòng CSV là một mức concurrency của một scenario:
 | `scenario` | `checkin` = `POST /api/v1/checkins` (công khai, chạy InsightFace); `history` = `GET /api/v1/checkins?limit=50` (có JWT) |
 | `throughput_rps` | Request/giây của toàn bộ lượt đo |
 | `p50_ms`, `p95_ms`, `p99_ms` | Percentile nearest-rank, nên luôn là một giá trị thật đã quan sát |
-| `cpu_percent_system` | CPU toàn máy trong cửa sổ đo |
-| `cpu_percent_server` | CPU riêng tiến trình Uvicorn, phần trăm của một core |
+| `cpu_percent_system` | CPU toàn máy trong cửa sổ đo, 0–100% |
+| `cpu_percent_server` | CPU riêng tiến trình Uvicorn, phần trăm của một core (vượt 100% được) |
 | `error_count` | Phải bằng 0; khác 0 thì lượt đo đó không dùng được |
 
 Harness bỏ warm-up ra khỏi số liệu và chờ `--settle-seconds` (mặc định 2s) trước khi lấy mẫu CPU, vì
@@ -110,10 +117,9 @@ mức đo kế tiếp.
 
 ## 4. Trạng thái kiểm chứng
 
-- Đã kiểm chứng cục bộ (Linux, 12 core): toàn bộ `run_baseline.py` chạy trọn vẹn trên SQLite —
-  migration, seed, Uvicorn, cả hai scenario, CSV và metadata.
-- Chưa kiểm chứng trên Kaggle: các cell `apt-get`/`pg_ctlcluster` và tên cluster PostgreSQL phụ
-  thuộc image Kaggle tại thời điểm chạy. Nếu lệch, sửa lại cell và ghi chính xác lệnh đã dùng vào
-  báo cáo baseline.
-- Số liệu baseline chính thức chỉ được ghi nhận sau khi chạy thật trên Kaggle CPU; kết quả cục bộ
-  không được dùng thay.
+- Đã chạy thật trên Kaggle CPU ngày 2026-09-22 với commit `4affbd0`, instance 4 core, Python
+  3.12.13, cho cả SQLite lẫn PostgreSQL. Toàn bộ 16 mức đo đều `error_count=0`.
+- Bản đầu tiên của cell 4 dùng `pg_ctlcluster 16 main start` và **không chạy được**: image Kaggle
+  cài cluster 14. Cell hiện tại là lệnh đã chạy thành công.
+- Số liệu thu được nằm ở [docs/benchmark/](benchmark/), phân tích ở
+  [benchmark-phase1.md](benchmark-phase1.md).

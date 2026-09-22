@@ -11,6 +11,12 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — perf(results): add phase 1 baseline data
+
+- Thêm số liệu baseline đo thật trên Kaggle CPU (commit `4affbd0`, 4 core) cho SQLite và PostgreSQL: 16 mức đo, `error_count=0` toàn bộ.
+- Sửa cell PostgreSQL trong hướng dẫn Kaggle theo lệnh chạy được thật: image Kaggle cài cluster 14 nên dùng `service postgresql start`.
+- Sửa mô tả sai đơn vị CPU: `cpu_percent_system` là phần trăm toàn máy (0–100%), `cpu_percent_server` mới là phần trăm của một core.
+
 ## 2026-09-22 — docs(api): export OpenAPI and record benchmark method
 
 - Thêm `scripts/export_openapi.py` và bản `docs/openapi.json` đã commit; test so sánh với app nên schema lệch sẽ fail thay vì âm thầm cũ đi.

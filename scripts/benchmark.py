@@ -84,10 +84,12 @@ class BenchmarkConfig:
 
 @dataclass(frozen=True, slots=True)
 class CpuUsage:
-    """CPU utilisation measured across a run window, in percent of one core.
+    """CPU utilisation measured across a run window.
 
-    A value above 100 means several cores were busy; divide by `cpu_count` in the
-    metadata file to read it as a fraction of the whole machine.
+    The two fields use different units. `system` is the share of the whole
+    machine, 0-100 whatever the core count. `server` is the share of a single
+    core for the server process alone, so it passes 100 when several cores are
+    busy; compare it against `cpu_count` in the metadata file.
     """
 
     system: float | None
