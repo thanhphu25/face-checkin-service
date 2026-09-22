@@ -62,6 +62,7 @@ Sau khi chạy stack:
 - Swagger UI: <http://localhost:8000/docs>
 - OpenAPI JSON: <http://localhost:8000/openapi.json>
 - Health: <http://localhost:8000/health>
+- Hướng dẫn test thủ công từng API trên Swagger: [docs/swagger-api-testing.md](docs/swagger-api-testing.md)
 
 Bản OpenAPI tĩnh đã commit tại [docs/openapi.json](docs/openapi.json) để đọc contract mà không cần
 dựng stack. Sau khi đổi route hoặc schema, xuất lại bằng `uv run python -m scripts.export_openapi`;
