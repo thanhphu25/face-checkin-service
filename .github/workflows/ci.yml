@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, week4, week5]
+    branches: [main, week4, week5, week6]
   pull_request:
 
 permissions:

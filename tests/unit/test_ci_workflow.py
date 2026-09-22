@@ -1,10 +1,10 @@
 from pathlib import Path
 
 
-def test_ci_runs_locked_quality_and_lightweight_test_gates_on_week5() -> None:
+def test_ci_runs_locked_quality_and_lightweight_test_gates_on_active_branches() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
 
-    assert "branches: [main, week4, week5]" in workflow
+    assert "branches: [main, week4, week5, week6]" in workflow
     assert workflow.count("uv sync --frozen --extra dev") >= 2
     assert "uv run ruff check ." in workflow
     assert "uv run ruff format --check ." in workflow

@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — ci: run pipeline on the week 6 branch
+
+- Thêm `week6` vào push trigger để pipeline chạy trước khi tag `v1.0-phase1`, thay vì chỉ chạy qua pull request.
+- Cập nhật test workflow theo danh sách branch mới và đặt lại tên test cho không gắn cứng vào một tuần.
+
 ## 2026-09-22 — docs(checklist): record hosted clean-setup evidence
 
 - Ghi GitHub Actions run `35703077030`: bốn job xanh, gồm Compose build/up/migration/health/HTTP và cleanup trên hosted runner sạch.
