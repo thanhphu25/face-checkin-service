@@ -11,6 +11,12 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — docs(api): export OpenAPI and record benchmark method
+
+- Thêm `scripts/export_openapi.py` và bản `docs/openapi.json` đã commit; test so sánh với app nên schema lệch sẽ fail thay vì âm thầm cũ đi.
+- Thêm ADR 0005 ghi điều kiện đo baseline: một worker, hai scenario, hai database, percentile nearest-rank, warm-up và khoảng lặng CPU.
+- README trỏ tới OpenAPI tĩnh, quy trình Kaggle và ADR mới; vẫn chưa công bố số liệu vì chưa chạy trên Kaggle.
+
 ## 2026-09-22 — perf(benchmark): finalize Kaggle CPU harness
 
 - Nâng `scripts/benchmark.py` từ scaffold Tuần 3 thành harness baseline: sweep nhiều mức concurrency, warm-up riêng, hai scenario `checkin`/`history`, CSV kết quả và metadata phần cứng/tham số.
