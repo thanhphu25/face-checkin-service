@@ -215,17 +215,36 @@ uv run pytest -q tests/integration
 Tên database PostgreSQL test bắt buộc chứa `test`. Hãy tạo database/container riêng, chạy migration
 và drop riêng nó; không trỏ lệnh này vào database dev.
 
-Benchmark: `scripts/run_baseline.py` chạy trọn migration → seed → Uvicorn → đo và ghi CSV cùng
-metadata phần cứng. Quy trình Kaggle CPU nằm ở [docs/benchmark-kaggle.md](docs/benchmark-kaggle.md),
-điều kiện đo ở [ADR 0005](docs/adr/0005-benchmark-method-and-baseline-conditions.md).
+### Baseline Pha 1
+
+Đo trên Kaggle CPU notebook (4 core, commit `4affbd0`, Uvicorn 1 worker), 16 mức đo đều không lỗi.
+Báo cáo đầy đủ kèm biểu đồ và giới hạn: [docs/benchmark-phase1.md](docs/benchmark-phase1.md); số
+liệu gốc ở [docs/benchmark/](docs/benchmark/).
+
+| Scenario | Backend | c=1 | c=2 | c=4 | c=8 |
+|---|---|---:|---:|---:|---:|
+| `POST /checkins` (req/s) | SQLite | 4.82 | 7.13 | 7.36 | 8.54 |
+| `POST /checkins` (req/s) | PostgreSQL | 4.83 | 6.63 | 7.17 | 8.46 |
+| `POST /checkins` p95 (ms) | PostgreSQL | 227.7 | 350.4 | 734.0 | 1116.0 |
+| `GET /checkins` (req/s) | SQLite | 162.9 | 180.4 | 123.2 | 81.6 |
+| `GET /checkins` (req/s) | PostgreSQL | 139.1 | 168.7 | 157.0 | 150.3 |
+| `GET /checkins` p95 (ms) | PostgreSQL | 7.8 | 13.2 | 32.0 | 73.5 |
+
+Ba điều đọc được từ baseline:
+
+- Check-in bị giới hạn bởi CPU inference (~200 ms/request); server dùng 3,1/4 core ngay ở một
+  client và máy bão hoà từ concurrency 2–4. Backend database gần như không ảnh hưởng tới đường này.
+- Đường đọc nhanh hơn ~34 lần nhưng chỉ dùng 1,2–1,6/4 core ở concurrency 8, tức còn hơn nửa máy
+  rảnh.
+- Dưới tải đọc đồng thời, SQLite tụt 54,8% so với đỉnh còn PostgreSQL chỉ giảm 10,9%.
+
+Chạy lại (quy trình Kaggle đầy đủ ở [docs/benchmark-kaggle.md](docs/benchmark-kaggle.md), điều kiện
+đo ở [ADR 0005](docs/adr/0005-benchmark-method-and-baseline-conditions.md)):
 
 ```bash
 JWT_SECRET=... SEED_ADMIN_PASSWORD=... SEED_USER_PASSWORD=... \
   uv run python -m scripts.run_baseline --backend sqlite --output-dir docs/benchmark
 ```
-
-Số liệu baseline chính thức phải đo trên Kaggle CPU; **Tuần 6** chưa chạy xong lượt đó, nên README
-chưa công bố p50/p95/p99, throughput hay kết luận tối ưu.
 
 ## 6. Quyết định thiết kế
 

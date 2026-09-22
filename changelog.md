@@ -11,6 +11,12 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — docs(benchmark): report phase 1 baseline
+
+- Thêm `docs/benchmark-phase1.md`: bảng, biểu đồ throughput/p50 cho hai scenario và hai backend, nhận xét và giới hạn của baseline.
+- README mục 5 có bảng tóm tắt baseline và ba kết luận chính, thay cho ghi chú "chờ Tuần 6".
+- Ghi rõ điểm nghẽn đo được là CPU inference (~200 ms/request) và việc đường đọc để trống hơn nửa máy; không chọn cải tiến Pha 2 ở đây.
+
 ## 2026-09-22 — perf(results): add phase 1 baseline data
 
 - Thêm số liệu baseline đo thật trên Kaggle CPU (commit `4affbd0`, 4 core) cho SQLite và PostgreSQL: 16 mức đo, `error_count=0` toàn bộ.
