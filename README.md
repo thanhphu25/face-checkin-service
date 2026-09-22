@@ -63,6 +63,10 @@ Sau khi chạy stack:
 - OpenAPI JSON: <http://localhost:8000/openapi.json>
 - Health: <http://localhost:8000/health>
 
+Bản OpenAPI tĩnh đã commit tại [docs/openapi.json](docs/openapi.json) để đọc contract mà không cần
+dựng stack. Sau khi đổi route hoặc schema, xuất lại bằng `uv run python -m scripts.export_openapi`;
+test sẽ fail nếu file commit bị lệch so với app.
+
 Nếu đổi `APP_PORT`, thay `8000` trong các URL bằng giá trị đó.
 
 | Method | Path | Quyền |
@@ -211,8 +215,17 @@ uv run pytest -q tests/integration
 Tên database PostgreSQL test bắt buộc chứa `test`. Hãy tạo database/container riêng, chạy migration
 và drop riêng nó; không trỏ lệnh này vào database dev.
 
-Benchmark Pha 1 sẽ được chạy và lưu số liệu trong **Tuần 6**. `scripts/benchmark.py` hiện mới là
-harness; README không công bố p50/p95/p99, throughput hay kết luận tối ưu khi chưa có phép đo thật.
+Benchmark: `scripts/run_baseline.py` chạy trọn migration → seed → Uvicorn → đo và ghi CSV cùng
+metadata phần cứng. Quy trình Kaggle CPU nằm ở [docs/benchmark-kaggle.md](docs/benchmark-kaggle.md),
+điều kiện đo ở [ADR 0005](docs/adr/0005-benchmark-method-and-baseline-conditions.md).
+
+```bash
+JWT_SECRET=... SEED_ADMIN_PASSWORD=... SEED_USER_PASSWORD=... \
+  uv run python -m scripts.run_baseline --backend sqlite --output-dir docs/benchmark
+```
+
+Số liệu baseline chính thức phải đo trên Kaggle CPU; **Tuần 6** chưa chạy xong lượt đó, nên README
+chưa công bố p50/p95/p99, throughput hay kết luận tối ưu.
 
 ## 6. Quyết định thiết kế
 
@@ -224,6 +237,8 @@ harness; README không công bố p50/p95/p99, throughput hay kết luận tối
   float32/L2/bytes cùng dimension/model name.
 - [ADR 0004](docs/adr/0004-phase-1-infrastructure-boundary.md): chưa dùng Redis cache,
   pgvector/FAISS hay async DB trong Pha 1.
+- [ADR 0005](docs/adr/0005-benchmark-method-and-baseline-conditions.md): điều kiện đo baseline —
+  một worker, hai scenario, hai database, percentile nearest-rank.
 
 ## 7. Biến môi trường và tài khoản mẫu
 
