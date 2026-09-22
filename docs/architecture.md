@@ -1,6 +1,6 @@
 # Kiến trúc hệ thống — Face Check-in Backend
 
-> Tài liệu kiến trúc Pha 1. Đi kèm [erd.md](erd.md) (mô hình dữ liệu) và [ke-hoach-8-tuan.md](ke-hoach-8-tuan.md) (kế hoạch, API spec, RACI).
+> Tài liệu kiến trúc Pha 1. Đi kèm [erd.md](erd.md) (mô hình dữ liệu), [ADR](adr/) (quyết định đã chấp nhận) và [ke-hoach-8-tuan.md](ke-hoach-8-tuan.md) (kế hoạch, API spec, RACI).
 > Đối tượng đọc: 3 thành viên trong nhóm, **và nhóm sẽ tiếp nhận hệ thống này ở Pha 2** — viết như thể người đọc không hỏi lại được ai.
 
 ## 1. Ràng buộc từ đề bài → quyết định kiến trúc
@@ -496,7 +496,7 @@ Model được **nạp một lần lúc khởi động** (singleton trong `app/m
 
 ## 10. Session & transaction
 
-**Lựa chọn Pha 1: session theo request, repository tự commit.**
+**Lựa chọn Pha 1: session/transaction theo request, repository chỉ flush.**
 
 ```python
 # app/api/deps.py
@@ -505,13 +505,16 @@ def get_db() -> Iterator[Session]:
         yield session
 ```
 
-| Tiêu chí | Cách đang chọn (repository commit) | Cách thay thế (Unit of Work) |
+| Tiêu chí | Cách đang chọn (request transaction) | Cách thay thế (Unit of Work) |
 |---|---|---|
 | Độ phức tạp | Thấp — đọc code là hiểu | Thêm 1 port + 1 adapter |
-| Ghi nhiều bảng trong 1 transaction | Không làm được | Làm được |
+| Ghi nhiều bảng trong 1 transaction | Chưa được Service điều phối rõ ràng | Làm được |
 | Phù hợp Pha 1? | **Có** — mọi use-case hiện tại chỉ ghi 1 bảng | Thừa |
 
-**Khi nào phải đổi:** ngay khi xuất hiện use-case ghi ≥ 2 bảng cần toàn vẹn (ví dụ Pha 2 thêm idempotency key: ghi `check_in_records` + `idempotency_keys` phải cùng thành hoặc cùng bại). Lúc đó thêm port `UnitOfWork` với `commit()`/`rollback()` và chuyển commit từ repository lên service. Ghi sẵn điều kiện này vào ADR để nhóm Pha 2 không phải tự đoán.
+Repository gọi `flush()` để nhận khóa chính. Dependency `get_session` ở composition root commit khi
+request hoàn tất, commit audit của lỗi domain dự kiến và rollback lỗi hệ thống.
+
+**Khi nào phải đổi:** ngay khi xuất hiện use-case ghi ≥ 2 bảng cần toàn vẹn (ví dụ Pha 2 thêm idempotency key: ghi `check_in_records` + `idempotency_keys` phải cùng thành hoặc cùng bại). Lúc đó thêm port `UnitOfWork` với `commit()`/`rollback()` để Service biểu diễn ranh giới transaction rõ ràng. Xem [ADR 0001](adr/0001-database-repository-and-migrations.md).
 
 ---
 
@@ -642,3 +645,12 @@ Kiến trúc này cố ý để lại các "khớp nối" sau. Nhóm tiếp nh�
 | Ngưỡng similarity chốt bừa | Check-in nhận nhầm người, hoặc luôn `unmatched` | Hiệu chỉnh bằng dữ liệu ở Tuần 3, lưu `threshold` vào từng bản ghi |
 | Timestamp lệch giữa SQLite và Postgres | Test pass local, filter theo ngày sai trên Docker | Luôn dùng UTC-aware ở tầng app (xem erd.md mục 6) |
 | Vòng nhập khẩu (circular import) giữa domain và services | `ImportError` lúc khởi động | Domain không được import services — mũi tên chỉ một chiều |
+
+---
+
+## 18. Architecture Decision Records
+
+- [ADR 0001 — Database, Repository và migration](adr/0001-database-repository-and-migrations.md)
+- [ADR 0002 — Authentication và authorization](adr/0002-authentication-and-authorization.md)
+- [ADR 0003 — Face embedding và cách lưu trữ](adr/0003-face-embedding-and-storage.md)
+- [ADR 0004 — Ranh giới hạ tầng Pha 1 và Pha 2](adr/0004-phase-1-infrastructure-boundary.md)
