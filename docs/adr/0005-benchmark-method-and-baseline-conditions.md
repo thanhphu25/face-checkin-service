@@ -27,8 +27,9 @@ này làm số CPU dễ bị hiểu sai nếu chỉ nhìn một con số phần 
   model `buffalo_s`.
 - Sau warm-up, harness chờ `--settle-seconds` rồi mới lấy mẫu CPU; cửa sổ đo ngắn hơn 0,5 giây được
   báo là thiếu thay vì báo một con số.
-- CPU được báo theo phần trăm **của một core** cho cả toàn máy và riêng tiến trình server; số core
-  nằm trong file metadata đi kèm mỗi CSV.
+- CPU được báo bằng hai đơn vị khác nhau và phải đọc đúng: `cpu_percent_system` là phần trăm của
+  toàn máy (0–100%), còn `cpu_percent_server` là phần trăm của một core cho riêng tiến trình server
+  (vượt 100% được). Số core nằm trong file metadata đi kèm mỗi CSV.
 - Tuần 8 phải chạy lại đúng script, đúng tham số và đúng loại instance Kaggle. Đổi bất kỳ yếu tố nào
   thì phải đo lại cả baseline.
 

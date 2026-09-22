@@ -199,12 +199,12 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 
 **A (chính)**
 - [x] Hoàn thiện script benchmark (`scripts/benchmark.py` sweep concurrency, warm-up, settle, CPU system/process, CSV + metadata; `scripts/run_baseline.py` chạy trọn migration → seed → Uvicorn → đo; đã chạy thật cục bộ trên SQLite, chưa chạy trên Kaggle)
-- [ ] Chạy trên Kaggle CPU notebook (chờ A: script benchmark; B: môi trường Kaggle) — quy trình và các cell notebook đã có tại [benchmark-kaggle.md](benchmark-kaggle.md), chờ chạy thật
-- [ ] Đo p50/p95/p99 latency, throughput, CPU usage theo số concurrent users (sau A: app chạy ổn trên Kaggle)
-- [ ] Lưu kết quả dạng bảng/CSV (sau A: đo đủ chỉ số; giao C viết báo cáo)
+- [x] Chạy trên Kaggle CPU notebook (chạy ngày 2026-09-22, commit `4affbd0`, instance 4 core, cả SQLite lẫn PostgreSQL; 16/16 mức đo `error_count=0`)
+- [x] Đo p50/p95/p99 latency, throughput, CPU usage theo số concurrent users (4 mức 1/2/4/8 cho cả hai scenario `checkin` và `history`)
+- [x] Lưu kết quả dạng bảng/CSV ([docs/benchmark/](benchmark/): hai CSV kèm hai file metadata ghi phần cứng và toàn bộ tham số chạy)
 
 **B**
-- [ ] Hỗ trợ A dựng môi trường chạy app trong Kaggle notebook (chờ A: chốt cách gọi script benchmark)
+- [x] Hỗ trợ A dựng môi trường chạy app trong Kaggle notebook ([benchmark-kaggle.md](benchmark-kaggle.md): 6 cell đã chạy thật; cell PostgreSQL sửa theo cluster 14 của image Kaggle)
 
 **C**
 - [ ] Viết báo cáo baseline (biểu đồ + nhận xét ngắn) đưa vào README (chờ A: bảng/CSV baseline)
