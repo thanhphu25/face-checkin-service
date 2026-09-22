@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — test(auth): verify protected endpoints and close week 4
+
+- Thêm SQLite API integration cho login/JWT, 401/403/404, ownership/RBAC; kiểm tra OpenAPI security và auth không copy-paste.
+- Cập nhật CI cho `week4`, chạy 78 test gồm InsightFace thật và xác minh PostgreSQL cách ly; ghi bằng chứng và đóng phần kỹ thuật Tuần 4.
+
 ## 2026-09-21 — test(service): cover face registration and check-in outcomes
 
 - Củng cố fake Repository/FaceEmbedder đúng port cho đăng ký thành công, user thiếu, no-face và multiple-face.

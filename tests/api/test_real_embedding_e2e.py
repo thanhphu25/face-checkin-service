@@ -24,3 +24,9 @@ def test_real_image_embedding_persists_and_matches_through_api(tmp_path) -> None
     assert result["similarity_score"] == pytest.approx(1.0, abs=1e-4)
     assert result["no_face_http_status"] == 422
     assert result["persisted_statuses"] == ["no_face", "success"]
+    assert result["user_history_statuses"] == ["success"]
+    assert result["admin_login_http_status"] == 200
+    assert result["user_login_http_status"] == 200
+    assert result["auth_me_http_status"] == 200
+    assert result["invalid_token_http_status"] == 401
+    assert result["rbac_forbidden_http_status"] == 403

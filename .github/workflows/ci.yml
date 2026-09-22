@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, week4]
   pull_request:
 
 jobs:
@@ -37,4 +37,6 @@ jobs:
         run: uv run python -c "from app.main import app; print(app.title)"
 
       - name: Tests
+        env:
+          JWT_SECRET: ci-test-secret-khong-dung-that
         run: uv run pytest -q
