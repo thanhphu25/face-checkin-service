@@ -3,9 +3,12 @@
 Backend điểm danh bằng khuôn mặt dùng FastAPI, SQLAlchemy/Alembic, PostgreSQL và InsightFace. Tài
 liệu này dành cho người nhận project mà không cần hỏi lại tác giả.
 
-Trạng thái hiện tại: Pha 1 đã có Repository, API, JWT/RBAC, image Docker, Compose, integration test
-và seed dữ liệu mẫu tái lập. Benchmark baseline đang là công việc Tuần 6, chưa được tuyên bố hoàn
-thành.
+Trạng thái hiện tại: Pha 1 đã có Repository, API, JWT/RBAC, image Docker, Compose, integration test,
+seed dữ liệu mẫu tái lập và benchmark baseline Tuần 6 trên Kaggle CPU. Số liệu và giới hạn được ghi
+trong [báo cáo baseline](docs/benchmark-phase1.md).
+
+Chuẩn bị review online: [mô tả bài toán, nghiệp vụ, baseline và phân tích Pha 2](docs/review-phase1.md),
+kèm [đặc tả API](docs/api-spec.md) đối chiếu với code hiện tại.
 
 ## 1. Nghiệp vụ và phạm vi
 
