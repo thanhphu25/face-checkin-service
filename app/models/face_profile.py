@@ -1,6 +1,14 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, LargeBinary, SmallInteger, String
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Identity,
+    LargeBinary,
+    SmallInteger,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, PkType
@@ -10,7 +18,7 @@ class FaceProfileORM(Base):
     __tablename__ = "face_profiles"
     __table_args__ = (CheckConstraint("embedding_dim > 0", name="dim"),)
 
-    id: Mapped[int] = mapped_column(PkType, primary_key=True)
+    id: Mapped[int] = mapped_column(PkType, Identity(always=True), primary_key=True)
     user_id: Mapped[int] = mapped_column(
         PkType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )

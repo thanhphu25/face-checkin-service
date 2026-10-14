@@ -65,31 +65,33 @@
 > Phụ thuộc: B/C cần A hoàn thành Repository interface (ABC) trước cuối tuần để không bị chặn ở Tuần 3.
 
 ### A (chính)
-- [ ] SQLAlchemy models thật (không phải draft)
+- [x] SQLAlchemy models thật (không phải draft)
 - [x] Domain entities thuần Python cho `User`, `FaceProfile`, `CheckInRecord` (sau A: chốt field; làm trước 3 Repository interface)
-- [ ] Alembic migration đầu tiên chạy được trên Postgres (chờ B: Postgres trong docker-compose)
-- [ ] Alembic migration chạy được trên SQLite (sau A: models + migration đầu tiên)
+- [x] Alembic migration đầu tiên chạy được trên Postgres (chờ B: Postgres trong docker-compose)
+- [x] Alembic migration chạy được trên SQLite (sau A: models + migration đầu tiên)
 - [x] Repository interface (ABC, framework-free): `UserRepository` (sau A: domain entity `User`)
 - [x] Repository interface: `FaceProfileRepository` (sau A: domain entity `FaceProfile`)
 - [x] Repository interface: `CheckInRepository` (sau A: domain entity `CheckInRecord`)
-- [ ] Implementation SQLAlchemy cho cả 3 repository trên (sau A: models + 3 interface)
-- [ ] Script/test thủ công `scripts/manual_test_repo.py` chứng minh CRUD chạy qua repository (sau A: repository impl + migration)
+- [x] Implementation SQLAlchemy cho cả 3 repository trên (sau A: models + 3 interface)
+- [x] Script/test thủ công `scripts/manual_test_repo.py` chứng minh CRUD chạy qua repository (sau A: repository impl + migration)
 
 ### B
-- [ ] Dựng docker-compose cho Postgres dev
-- [ ] Hỗ trợ A test kết nối DB (chờ A: migration Postgres sẵn sàng)
-- [ ] Bắt đầu FastAPI router rỗng (chưa nối service)
+- [x] Dựng docker-compose cho Postgres dev
+- [x] Hỗ trợ A test kết nối DB (chờ A: migration Postgres sẵn sàng)
+- [x] Bắt đầu FastAPI router rỗng (chưa nối service)
 
 ### C
-- [ ] Interface `FaceEmbedder` (abstract, độc lập với DB, chưa cần tối ưu)
-- [ ] Pydantic schema request/response cho `User` (chờ A: chốt field `User`)
-- [ ] Pydantic schema request/response cho `FaceProfile` (chờ A: chốt field `FaceProfile`)
-- [ ] Pydantic schema request/response cho `CheckInRecord` (chờ A: chốt field `CheckInRecord`)
+- [x] Interface `FaceEmbedder` (abstract, độc lập với DB, chưa cần tối ưu)
+- [x] Pydantic schema request/response cho `User` (chờ A: chốt field `User`)
+- [x] Pydantic schema request/response cho `FaceProfile` (chờ A: chốt field `FaceProfile`)
+- [x] Pydantic schema request/response cho `CheckInRecord` (chờ A: chốt field `CheckInRecord`)
 
 ### DoD cuối Tuần 2
-- [ ] Repository interface + impl cho 3 entity, có test thủ công log lại (A xác nhận sau script CRUD)
-- [ ] Migration chạy sạch từ DB rỗng (`alembic upgrade head` trên máy sạch) (A + B xác nhận trên Postgres)
-- [ ] `FaceEmbedder` interface sẵn sàng (C xác nhận, B review chữ ký hàm)
+- [x] Repository interface + impl cho 3 entity, có test thủ công log lại (A xác nhận sau script CRUD)
+- [x] Migration chạy sạch từ DB rỗng (`alembic upgrade head` trên máy sạch) (A + B xác nhận trên Postgres)
+- [x] `FaceEmbedder` interface sẵn sàng (C xác nhận, B review chữ ký hàm)
+
+Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md](week-2-verification.md).
 
 ---
 
