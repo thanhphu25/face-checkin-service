@@ -8,6 +8,8 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci-secret-khong-dung-that
     steps:
       - uses: actions/checkout@v4
 
@@ -32,8 +34,6 @@ jobs:
         run: uv run lint-imports
 
       - name: Smoke test — app khởi động được
-        env:
-          JWT_SECRET: ci-secret-khong-dung-that
         run: uv run python -c "from app.main import app; print(app.title)"
 
       - name: Tests
