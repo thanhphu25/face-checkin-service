@@ -9,6 +9,7 @@ def test_initial_migration_upgrade_downgrade_upgrade(tmp_path, monkeypatch) -> N
     database_path = tmp_path / "migration.db"
     database_url = f"sqlite:///{database_path.as_posix()}"
     monkeypatch.setenv("DATABASE_URL", database_url)
+    monkeypatch.setenv("JWT_SECRET", "test-secret")
     get_settings.cache_clear()
     config = Config("alembic.ini")
 
