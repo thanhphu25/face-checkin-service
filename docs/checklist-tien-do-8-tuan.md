@@ -101,28 +101,30 @@ Bằng chứng chạy migration, CRUD và quality gates: [week-2-verification.md
 > Phụ thuộc: A chốt Repository; C làm Service; B chốt versioning/router skeleton rồi nối Service vào router.
 
 ### A
-- [ ] Hỗ trợ B/C khi vướng mắc về Repository (sau A: repository Tuần 2 đã chốt)
-- [ ] Dựng khung script load test (`locustfile.py` hoặc `benchmark.py`, chưa chạy thật) (chờ B: chốt URL endpoint)
+- [x] Hỗ trợ B/C khi vướng mắc về Repository (sau A: repository Tuần 2 đã chốt)
+- [x] Dựng khung script load test (`locustfile.py` hoặc `benchmark.py`, chưa chạy thật) (chờ B: chốt URL endpoint)
 
 ### B
-- [ ] Router `/users` (chưa auth) (chờ C: `UserService` + schema `User`)
-- [ ] Router `/face-profiles` (chưa auth) (chờ C: `FaceProfileService` + schema `FaceProfile`)
-- [ ] Router `/checkins` (chưa auth) (chờ C: `CheckInService` + schema `CheckInRecord`)
-- [ ] Nối dependency API → Service → Repository trong composition root (chờ A: repository impl; C: service contract)
-- [ ] Exception handler chuẩn (400/404/422)
-- [ ] Versioning `/api/v1/...` (làm trước B: 3 router để tránh đổi path)
+- [x] Router `/users` (chưa auth) (chờ C: `UserService` + schema `User`)
+- [x] Router `/face-profiles` (chưa auth) (chờ C: `FaceProfileService` + schema `FaceProfile`)
+- [x] Router `/checkins` (chưa auth) (chờ C: `CheckInService` + schema `CheckInRecord`)
+- [x] Nối dependency API → Service → Repository trong composition root (chờ A: repository impl; C: service contract)
+- [x] Exception handler chuẩn (400/404/422)
+- [x] Versioning `/api/v1/...` (làm trước B: 3 router để tránh đổi path)
 
 ### C (chính)
-- [ ] `InsightFaceEmbedder` implementation thật (sau C: `FaceEmbedder`; làm trước test end-to-end)
-- [ ] `UserService` (thuần Python, không import FastAPI/SQLAlchemy) (chờ A: `UserRepository` impl)
-- [ ] `FaceProfileService` (gọi `FaceEmbedder` + Repository) (chờ A: `FaceProfileRepository`; sau C: `FaceEmbedder`)
-- [ ] `CheckInService` (so khớp embedding, tính similarity) (chờ A: `FaceProfileRepository` + `CheckInRepository`; sau C: `FaceEmbedder`)
-- [ ] Kiểm tra kỹ: Service layer không import framework/DB (sau C: 3 service)
+- [x] `InsightFaceEmbedder` implementation thật (sau C: `FaceEmbedder`; làm trước test end-to-end)
+- [x] `UserService` (thuần Python, không import FastAPI/SQLAlchemy) (chờ A: `UserRepository` impl)
+- [x] `FaceProfileService` (gọi `FaceEmbedder` + Repository) (chờ A: `FaceProfileRepository`; sau C: `FaceEmbedder`)
+- [x] `CheckInService` (so khớp embedding, tính similarity) (chờ A: `FaceProfileRepository` + `CheckInRepository`; sau C: `FaceEmbedder`)
+- [x] Kiểm tra kỹ: Service layer không import framework/DB (sau C: 3 service)
 
 ### DoD cuối Tuần 3
-- [ ] Toàn bộ endpoint CRUD cơ bản (POST/GET/DELETE cho 3 entity) chạy qua `/docs`, test tay bằng Swagger UI thành công (chờ B: router; C: service; A: repository)
-- [ ] Service layer không có import framework/DB — kiểm tra bằng `grep` nhanh (chờ C: hoàn tất service)
-- [ ] Face embedding thật (không mock) chạy end-to-end: upload ảnh → sinh embedding → lưu DB (chờ B: router; C: embedder/service; A: repository)
+- [x] Toàn bộ endpoint CRUD cơ bản (POST/GET/DELETE cho 3 entity) chạy qua `/docs`, test tay bằng Swagger UI thành công (chờ B: router; C: service; A: repository)
+- [x] Service layer không có import framework/DB — kiểm tra bằng `grep` nhanh (chờ C: hoàn tất service)
+- [x] Face embedding thật (không mock) chạy end-to-end: upload ảnh → sinh embedding → lưu DB (chờ B: router; C: embedder/service; A: repository)
+
+Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3-verification.md](week-3-verification.md).
 
 ---
 

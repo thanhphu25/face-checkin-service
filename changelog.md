@@ -11,6 +11,46 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — test(api): verify CRUD and face embedding flow
+
+- Thêm kiểm thử API/OpenAPI, boundary Service và E2E dùng model InsightFace thật qua SQLite.
+- Xác minh cùng luồng trên PostgreSQL cách ly, ghi bằng chứng và hoàn tất checklist/DoD Tuần 3.
+
+## 2026-09-21 — perf(benchmark): scaffold API load harness
+
+- Thêm harness async cho endpoint cuối `/api/v1/checkins` với URL, ảnh, request và concurrency cấu hình được.
+- Tính throughput cùng p50/p95/p99 tại console; chưa chạy hoặc lưu baseline trước Tuần 6.
+
+## 2026-09-21 — feat(api): implement resource routers
+
+- Hoàn thiện endpoint CRUD users, face profiles và check-ins dưới `/api/v1` chưa có auth.
+- Thêm upload JPEG/PNG có giới hạn dung lượng, response không lộ password hash hoặc embedding.
+
+## 2026-09-21 — feat(api): add v1 composition root and error handlers
+
+- Lắp session theo request, Repository, Service, embedder singleton và password hasher qua dependency factory.
+- Commit audit cho lỗi nghiệp vụ dự kiến, rollback lỗi hệ thống và map lỗi domain sang HTTP 400/404/422.
+
+## 2026-09-21 — feat(service): implement check-in service
+
+- Thêm cosine matching vector hóa, lọc profile theo model và ngưỡng cấu hình.
+- Ghi lịch sử cho cả `success`, `unmatched`, `no_face` và hỗ trợ truy vấn/xóa bản ghi.
+
+## 2026-09-21 — feat(service): implement face profile service
+
+- Thêm đăng ký, liệt kê và xóa hồ sơ khuôn mặt qua các domain port.
+- Kiểm tra user tồn tại và củng cố bất biến embedding `float32` đã L2-normalized.
+
+## 2026-09-21 — feat(service): implement user service
+
+- Thêm CRUD người dùng qua Repository port, chuẩn hóa email bằng trim + casefold.
+- Băm mật khẩu qua `PasswordHasher` port và trả lỗi domain cho email trùng/không hợp lệ.
+
+## 2026-09-21 — feat(ml): implement InsightFace embedder
+
+- Thêm adapter InsightFace CPU xử lý rõ ảnh lỗi, không có mặt và nhiều mặt.
+- Bảo đảm embedding đầu ra luôn liên tục, `float32` và L2-normalized; khóa dependency ML.
+
 ## 2026-09-21 — test(repo): add CRUD smoke script and close week 2
 
 - Thêm script tạo/đọc/liệt kê/xóa cả ba entity hoàn toàn qua Repository port.
