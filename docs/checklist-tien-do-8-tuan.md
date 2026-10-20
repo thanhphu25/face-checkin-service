@@ -148,9 +148,9 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [ ] Cập nhật CI chạy `pytest` (chờ C: có unit test; B sở hữu workflow CI)
 
 ### C
-- [ ] Unit test Service layer (mock Repository): đăng ký khuôn mặt (sau C: `FaceProfileService`)
-- [ ] Unit test Service layer: check-in thành công (sau C: `CheckInService`)
-- [ ] Unit test Service layer: check-in thất bại (sau C: `CheckInService`)
+- [x] Unit test Service layer (fake Repository/FaceEmbedder đúng port): đăng ký khuôn mặt thành công, user thiếu, no-face/multiple-face và ownership
+- [x] Unit test Service layer: check-in thành công, lọc đúng model/dimension và ownership
+- [x] Unit test Service layer: check-in `unmatched`/`no_face`, xác nhận lịch sử thất bại vẫn được lưu
 
 ### DoD cuối Tuần 4
 - [ ] `POST /face-profiles` và `GET /checkins` yêu cầu JWT — xác nhận 401 khi không có token (chờ B: JWT + auth dependency)
