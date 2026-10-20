@@ -9,6 +9,7 @@ from app.domain import (
     FaceProfile,
     FaceProfileNotFound,
     FaceProfileRepository,
+    PermissionDenied,
     Role,
     User,
     UserNotFound,
@@ -147,3 +148,38 @@ def test_delete_profile_requires_existing_profile() -> None:
     assert service.list_profiles() == []
     with pytest.raises(FaceProfileNotFound):
         service.delete_profile(profile.id)
+
+
+def test_face_profile_ownership_scopes_lists_and_deletes() -> None:
+    service, users, _, _ = _service()
+    owner = users.get(1)
+    other = User(
+        id=2,
+        email="other@example.com",
+        hashed_password="hashed",
+        role=Role.USER,
+        full_name="Other",
+        created_at=datetime(2026, 9, 21, 8, tzinfo=UTC),
+    )
+    admin = User(
+        id=3,
+        email="admin@example.com",
+        hashed_password="hashed",
+        role=Role.ADMIN,
+        full_name="Admin",
+        created_at=datetime(2026, 9, 21, 8, tzinfo=UTC),
+    )
+    users.add(other)
+
+    owner_profile = service.register_face_for(owner, b"image")
+    other_profile = service.register_face_for(other, b"image")
+
+    assert service.list_profiles_for(owner, user_id=other.id) == [owner_profile]
+    assert service.list_profiles_for(admin) == [owner_profile, other_profile]
+    with pytest.raises(PermissionDenied):
+        service.delete_profile_for(other, owner_profile.id)
+    with pytest.raises(FaceProfileNotFound):
+        service.delete_profile_for(other, 404)
+
+    service.delete_profile_for(admin, owner_profile.id)
+    assert service.list_profiles_for(admin) == [other_profile]

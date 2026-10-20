@@ -11,6 +11,7 @@ from app.domain.errors import (
     InvalidToken,
     MultipleFacesDetected,
     NoFaceDetected,
+    PermissionDenied,
     UnmatchedFace,
     UserNotFound,
 )
@@ -41,6 +42,7 @@ __all__ = [
     "MultipleFacesDetected",
     "NoFaceDetected",
     "PasswordHasher",
+    "PermissionDenied",
     "Role",
     "UnmatchedFace",
     "User",

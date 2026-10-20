@@ -142,9 +142,9 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 
 ### B (chính)
 - [x] JWT login (Argon2id, tương thích hash PBKDF2 tạm của Tuần 3) (đã nối `UserService`, `UserRepository`, `/auth/login` và `/auth/me`)
-- [ ] `Depends(get_current_user)` dùng chung ở router (không copy code từng handler) (sau B: JWT login)
-- [ ] RBAC theo role (chờ A: field/migration `role`; sau B: `get_current_user`)
-- [ ] (Cân nhắc) `BaseHTTPMiddleware` chặn `/protected/*` (sau B: auth dependency; không làm song song cùng file auth)
+- [x] `Depends(get_current_user)` dùng chung ở route (không copy code từng handler; router có cả endpoint công khai và được bảo vệ)
+- [x] RBAC theo role (dependency `require_admin`, ownership được ép trong Service)
+- [x] Đã cân nhắc `BaseHTTPMiddleware` và không dùng (dependency là cơ chế auth duy nhất, tránh decode/DB lookup hai lần)
 - [ ] Cập nhật CI chạy `pytest` (chờ C: có unit test; B sở hữu workflow CI)
 
 ### C

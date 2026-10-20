@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-21 — feat(auth): add shared authentication and RBAC
+
+- Áp dụng `get_current_user`/`require_admin` dùng chung cho các route được bảo vệ, giữ `POST /checkins` công khai.
+- Đưa ownership vào Service, giới hạn user thường ở tài nguyên/lịch sử của mình và phân biệt lỗi 401/403/404.
+
 ## 2026-09-21 — feat(auth): add password hashing and JWT login
 
 - Thay hasher tạo mới bằng Argon2id có tương thích PBKDF2 Tuần 3; khóa Argon2/PyJWT và thêm JWT có `sub`, `role`, `iat`, `exp`.
