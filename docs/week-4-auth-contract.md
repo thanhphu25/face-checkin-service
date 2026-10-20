@@ -18,8 +18,9 @@ Ngày chốt kỹ thuật: 2026-09-21.
 
 ## 2. Hợp đồng đăng nhập và JWT
 
-- `POST /api/v1/auth/login` nhận JSON `email` và `password`. Email được chuẩn hóa bằng cùng quy tắc
-  `strip + casefold` của `UserService`.
+- `POST /api/v1/auth/login` nhận OAuth2 password form với trường chuẩn `username` chứa email và
+  trường `password`, để nút Authorize của Swagger hoạt động đúng. Email được chuẩn hóa bằng cùng
+  quy tắc `strip + casefold` của `UserService`.
 - Email không tồn tại và mật khẩu sai cùng trả `401` với một thông điệp chung. API không trả hoặc
   ghi log mật khẩu hay password hash.
 - Access token chứa `sub` là user id dạng chuỗi, `role`, `iat` và `exp`; thuật toán, secret và thời

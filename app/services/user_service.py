@@ -2,7 +2,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 from app.domain.entities import Role, User
-from app.domain.errors import EmailAlreadyExists, InvalidEmail, UserNotFound
+from app.domain.errors import AuthenticationFailed, EmailAlreadyExists, InvalidEmail, UserNotFound
 from app.domain.ports import PasswordHasher, UserRepository
 
 
@@ -45,6 +45,18 @@ class UserService:
         user = self._users.get(user_id)
         if user is None:
             raise UserNotFound(f"User {user_id} was not found")
+        return user
+
+    def authenticate(self, *, email: str, password: str) -> User:
+        try:
+            normalized_email = self.normalize_email(email)
+        except InvalidEmail:
+            normalized_email = ""
+        user = self._users.get_by_email(normalized_email)
+        password_hash = user.hashed_password if user is not None else ""
+        password_matches = self._password_hasher.verify(password, password_hash)
+        if user is None or not password_matches:
+            raise AuthenticationFailed()
         return user
 
     def list_users(self) -> list[User]:

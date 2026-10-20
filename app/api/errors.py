@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.domain.errors import (
+    AuthenticationFailed,
     CheckInNotFound,
     DomainError,
     EmailAlreadyExists,
@@ -11,6 +12,7 @@ from app.domain.errors import (
     FaceProfileNotFound,
     InvalidEmail,
     InvalidImage,
+    InvalidToken,
     MultipleFacesDetected,
     NoFaceDetected,
     UnmatchedFace,
@@ -35,10 +37,17 @@ def register_error_handlers(app: FastAPI) -> None:
             body["record_id"] = record_id
         if isinstance(exc, UnmatchedFace):
             body["best_score"] = exc.best_score
-        return JSONResponse(status_code=status_code, content=body)
+        headers = (
+            {"WWW-Authenticate": "Bearer"}
+            if isinstance(exc, (AuthenticationFailed, InvalidToken))
+            else None
+        )
+        return JSONResponse(status_code=status_code, content=body, headers=headers)
 
 
 def _status_code(exc: DomainError) -> int:
+    if isinstance(exc, (AuthenticationFailed, InvalidToken)):
+        return 401
     if isinstance(exc, _BAD_REQUEST_ERRORS):
         return 400
     if isinstance(exc, _NOT_FOUND_ERRORS):
