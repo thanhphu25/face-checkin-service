@@ -7,7 +7,6 @@ from app.domain.ports import PasswordHasher, UserRepository
 from app.services.authorization import require_admin, require_owner_or_admin
 
 
-
 class UserService:
     def __init__(
         self,
