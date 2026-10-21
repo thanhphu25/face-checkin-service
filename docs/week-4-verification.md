@@ -123,3 +123,11 @@ Phần kỹ thuật về DI/auth và kiểm tra không copy-paste đã có test 
 trình triển khai. Tuy nhiên checklist yêu cầu pair session nửa buổi và review chéo A/C là hoạt động
 của con người; chưa có biên bản hoặc xác nhận từ thành viên nhóm nên vẫn để **chưa tick**. Tài liệu
 này không tuyên bố hai hoạt động đó đã diễn ra.
+
+### Cập nhật tiêu chí ngày 2026-09-22
+
+Theo chấp thuận rõ ràng của chủ project, hai hoạt động quy trình trên được thay bằng
+[technical review auth có cấu trúc](week-4-auth-technical-review.md), gồm rà soát code/dependency,
+AST test, API integration và 27 test auth/DI/RBAC. Checklist đánh dấu hoàn tất theo **tiêu chí thay
+thế** này; project vẫn không tuyên bố pair session nửa buổi hoặc review chéo A/C của con người đã
+diễn ra.

@@ -134,9 +134,10 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 > Đây là điểm dễ lệch chuẩn kiến trúc nhất → cả nhóm pair lại.
 >
 > Bằng chứng kỹ thuật SQLite/PostgreSQL/API/OpenAPI/InsightFace: [week-4-verification.md](week-4-verification.md).
+> Technical review thay thế được chủ project chấp thuận: [week-4-auth-technical-review.md](week-4-auth-technical-review.md). Tài liệu này không tuyên bố đã có pair/review của con người.
 
 ### Cả nhóm
-- [ ] Pair session ≥ nửa buổi: thống nhất cách implement dependency injection cho auth (chờ Tuần 3: API + service chạy)
+- [x] Technical review có cấu trúc thay cho pair session auth (chủ project chấp thuận ngày 2026-09-22; không tuyên bố đã có pair session nửa buổi của con người)
 
 ### A
 - [x] Thêm field `role` cho `User` (nếu chưa có) + migration cập nhật (đã có đủ trong domain, ORM và migration `0001`; không tạo migration thừa)
@@ -158,33 +159,35 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [x] `POST /face-profiles` và `GET /checkins` yêu cầu JWT — API integration test xác nhận 401 khi không có token
 - [x] RBAC hoạt động: user thường không xóa được record người khác / không tạo được user mới
 - [x] Unit test service layer chạy pass bằng đúng dependency và lệnh pytest của CI
-- [ ] Auth code không bị copy-paste lặp ở từng handler — AST test/review kỹ thuật đã pass; còn chờ A/C xác nhận review chéo của con người
+- [x] Auth code không bị copy-paste lặp ở từng handler — AST test và technical review thay thế đã pass; không tuyên bố đã có review chéo A/C của con người
 
 ---
 
 ## Tuần 5 — Docker hóa, README, Integration test
 
 > Mục tiêu: `docker compose up` chạy được từ máy sạch.
+>
+> Bằng chứng kỹ thuật Repository/Docker/Compose/CI/clean-directory/InsightFace: [week-5-verification.md](week-5-verification.md).
 
 ### A
-- [ ] Integration test cho Repository (SQLite/Postgres test container) (chờ B: Postgres trong docker-compose; sau A: repository + migration)
+- [x] Integration test cho Repository (SQLite/Postgres test container) (Repository/mapping/migration thật; PostgreSQL database kiểm chứng cách ly)
 
 ### B (chính)
-- [ ] `Dockerfile` multi-stage (chờ Tuần 4: dependencies/app ổn định)
-- [ ] `docker-compose.yml` (app + Postgres + Redis dự phòng Pha 2) (sau B: `Dockerfile`; chờ A: migration Postgres)
-- [ ] Test lại trên máy khác/máy sạch trong nhóm (chờ B: docker-compose; nhờ A hoặc C test chéo)
+- [x] `Dockerfile` multi-stage (Python 3.12, frozen production dependencies, runtime non-root và stdlib healthcheck)
+- [x] `docker-compose.yml` (app + Postgres + Redis dự phòng Pha 2; migration là service một lần, Redis chưa được app sử dụng)
+- [x] Test trên môi trường máy sạch độc lập bằng GitHub-hosted Ubuntu runner — run `35703077030` build/up/verify/cleanup Compose thành công; đây là tiêu chí kỹ thuật thay thế được chủ project chấp thuận, không tuyên bố A/C đã test trên máy cá nhân
 
 ### C
-- [ ] README đầy đủ: kiến trúc
-- [ ] README đầy đủ: đặc tả API (chờ B: router + auth ổn định)
-- [ ] README đầy đủ: hướng dẫn chạy (chờ B: docker-compose chạy được)
-- [ ] README đầy đủ: ADR ngắn (chờ A/B: cung cấp quyết định DB/auth)
-- [ ] Bắt đầu ADR ghi lại quyết định dễ gây hiểu lầm (chờ A/B: chốt DB/auth; C chốt model)
+- [x] README đầy đủ: kiến trúc
+- [x] README đầy đủ: đặc tả API (quyền truy cập và Swagger/OpenAPI)
+- [x] README đầy đủ: hướng dẫn chạy (Docker Compose từ clone sạch, health/log/migration/dọn test)
+- [x] README đầy đủ: ADR ngắn (liên kết bốn ADR phản ánh implementation)
+- [x] Bắt đầu ADR ghi lại quyết định dễ gây hiểu lầm (DB/Repository/migration, auth/RBAC, embedding và ranh giới Pha 1/Pha 2)
 
 ### DoD cuối Tuần 5
-- [ ] `docker compose up` chạy thành công trên máy chưa từng cài project (chờ B: compose; A/C test chéo)
-- [ ] README có đủ 7 mục theo kế hoạch, trừ benchmark (chờ C: README; A/B review phần mình)
-- [ ] Integration test chạy trong CI, không chỉ unit test (chờ A: integration test; B: nối CI)
+- [x] `docker compose up` chạy thành công trên GitHub-hosted runner sạch — run `35703077030`, job `compose-clean-setup`; tiêu chí thay thế được chủ project chấp thuận, không tuyên bố là máy của thành viên A/C
+- [x] README có đủ 7 mục theo kế hoạch, benchmark ghi rõ chờ Tuần 6; chưa có xác nhận review A/B của con người
+- [x] Integration test chạy trong CI, không chỉ unit test (job SQLite và PostgreSQL thật bắt buộc; đã mô phỏng đủ job cục bộ, run GitHub được kiểm tra sau push)
 
 ---
 

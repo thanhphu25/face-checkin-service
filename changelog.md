@@ -11,6 +11,46 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — docs(checklist): record hosted clean-setup evidence
+
+- Ghi GitHub Actions run `35703077030`: bốn job xanh, gồm Compose build/up/migration/health/HTTP và cleanup trên hosted runner sạch.
+- Tick hai tiêu chí máy sạch Tuần 5 theo phương án thay thế được chủ project chấp thuận, không tuyên bố A/C đã test trên máy cá nhân.
+
+## 2026-09-22 — ci: add hosted clean-compose verification
+
+- Thêm job dựng Compose từ đầu trên GitHub-hosted runner, xác minh migration/app/PostgreSQL/Redis/HTTP và kiểm tra cleanup tài nguyên cách ly.
+- Ghi technical review auth thay thế được chủ project chấp thuận, đồng thời nói rõ không có pair/review chéo của con người.
+
+## 2026-09-22 — ci: run integration tests and verify clean setup
+
+- Tách CI thành quality/SQLite, PostgreSQL integration bắt buộc và Docker image build; real-model E2E vẫn là verification thủ công có chủ ý.
+- Xác minh clone sạch bằng Compose project cách ly, chạy full suite với PostgreSQL/InsightFace thật và ghi bằng chứng cùng cleanup Tuần 5.
+
+## 2026-09-22 — docs(readme): document architecture API and local setup
+
+- Viết lại README thành tài liệu bàn giao gồm phạm vi, kiến trúc, endpoint/quyền, Compose từ máy sạch, test, ADR, env và placeholder account.
+- Ghi rõ Redis chưa được app sử dụng, seed/benchmark chờ Tuần 6 và cách dọn project test mà không xóa nhầm dữ liệu dev.
+
+## 2026-09-22 — docs(adr): record database auth and embedding decisions
+
+- Thêm bốn ADR có context, decision, alternatives, consequences và điều kiện xem lại cho data, auth, embedding và ranh giới Pha 1/Pha 2.
+- Liên kết ADR từ kiến trúc và cập nhật mô tả transaction theo implementation thật: Repository flush, dependency session commit/rollback.
+
+## 2026-09-22 — build(compose): run app with PostgreSQL and Redis
+
+- Mở rộng Compose thành app, migration one-shot, PostgreSQL 16 và Redis 7 với healthcheck/dependency rõ ràng.
+- Dùng volume bền vững cho PostgreSQL/model cache, port cấu hình được và placeholder môi trường; Redis vẫn chỉ là hạ tầng dự phòng Pha 2.
+
+## 2026-09-22 — build(docker): add multi-stage application image
+
+- Thêm image Python 3.12 multi-stage cài production dependency từ `uv.lock`, runtime non-root và healthcheck không cần curl.
+- Giảm build context bằng `.dockerignore` để loại secret, database, cache, model/ONNX, ảnh mặt và output tạm.
+
+## 2026-09-22 — test(repo): add SQLite and PostgreSQL integration tests
+
+- Chạy cùng bộ integration test qua Repository, domain mapping và migration thật trên SQLite lẫn PostgreSQL 16 cách ly.
+- Bao phủ CRUD, enum, unique email, embedding float32/bytes/dimension/model, cascade/SET NULL, filter, thứ tự, limit và SQLite foreign keys; thêm migration `0002` sửa xung đột giữa CHECK và lịch sử được ẩn danh.
+
 ## 2026-09-22 — test(auth): verify protected endpoints and close week 4
 
 - Thêm SQLite API integration cho login/JWT, 401/403/404, ownership/RBAC; kiểm tra OpenAPI security và auth không copy-paste.

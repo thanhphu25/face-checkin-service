@@ -13,10 +13,11 @@ class CheckInRecordORM(Base):
             "status IN ('success', 'unmatched', 'no_face')",
             name="status",
         ),
-        # Bản ghi success bắt buộc biết là ai và có điểm similarity.
+        # A successful insert must have a score. Its user can later become NULL through
+        # ON DELETE SET NULL so attendance history survives identity deletion.
         CheckConstraint(
-            "status <> 'success' OR (user_id IS NOT NULL AND similarity_score IS NOT NULL)",
-            name="success_shape",
+            "status <> 'success' OR similarity_score IS NOT NULL",
+            name="success_score",
         ),
         Index("ix_check_in_records_user_id_checkin_time", "user_id", "checkin_time"),
         Index("ix_check_in_records_checkin_time", "checkin_time"),
