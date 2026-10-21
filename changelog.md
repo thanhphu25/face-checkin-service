@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — ci: run integration tests and verify clean setup
+
+- Tách CI thành quality/SQLite, PostgreSQL integration bắt buộc và Docker image build; real-model E2E vẫn là verification thủ công có chủ ý.
+- Xác minh clone sạch bằng Compose project cách ly, chạy full suite với PostgreSQL/InsightFace thật và ghi bằng chứng cùng cleanup Tuần 5.
+
 ## 2026-09-22 — docs(readme): document architecture API and local setup
 
 - Viết lại README thành tài liệu bàn giao gồm phạm vi, kiến trúc, endpoint/quyền, Compose từ máy sạch, test, ADR, env và placeholder account.
