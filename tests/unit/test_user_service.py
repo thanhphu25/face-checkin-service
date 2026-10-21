@@ -94,6 +94,7 @@ def test_create_user_rejects_duplicate_normalized_email() -> None:
     with pytest.raises(EmailAlreadyExists):
         service.create_user(email=" PERSON@example.com ", password="password", full_name="Other")
 
+
 def test_authenticate_normalizes_email_and_verifies_password() -> None:
     service, _, hasher = _service()
     user = service.create_user(
@@ -133,6 +134,7 @@ def test_authenticate_uses_same_error_for_unknown_email_and_wrong_password(
         service.authenticate(email=email, password=password)
 
     assert hasher.verify_attempts[-1][0] == password
+
 
 @pytest.mark.parametrize("email", ["", "missing-at.example.com", "@example.com", "a@@b.com"])
 def test_create_user_rejects_invalid_email(email: str) -> None:

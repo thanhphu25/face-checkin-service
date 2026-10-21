@@ -14,7 +14,7 @@ class InvalidToken(DomainError):
 
     def __init__(self) -> None:
         super().__init__("Could not validate credentials")
-        
+
 
 class PermissionDenied(DomainError):
     """Raised when an authenticated user cannot perform an operation."""

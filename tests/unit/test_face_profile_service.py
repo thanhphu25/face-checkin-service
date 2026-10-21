@@ -202,7 +202,6 @@ def test_face_profile_ownership_scopes_lists_and_deletes() -> None:
     with pytest.raises(FaceProfileNotFound):
         service.delete_profile_for(other, 404)
 
-
     service.delete_profile_for(owner, owner_profile.id)
     assert service.list_profiles_for(admin) == [other_profile]
 

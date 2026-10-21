@@ -49,6 +49,7 @@ class PBKDF2PasswordHasher(PasswordHasher):
         actual = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, iterations)
         return hmac.compare_digest(actual, expected)
 
+
 @lru_cache
 def _dummy_argon2_hash() -> str:
     return Argon2Engine(type=Type.ID).hash(secrets.token_urlsafe(32))

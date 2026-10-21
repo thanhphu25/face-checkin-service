@@ -176,6 +176,7 @@ def test_check_in_without_compatible_profiles_is_unmatched() -> None:
     assert caught.value.best_score is None
     assert records.items[caught.value.record_id].status is CheckInStatus.UNMATCHED
 
+
 def test_check_in_never_matches_profiles_from_other_model_or_dimension() -> None:
     profiles = [
         _profile(1, 10, [1.0, 0.0], model_name="different-model"),
@@ -191,6 +192,7 @@ def test_check_in_never_matches_profiles_from_other_model_or_dimension() -> None
     assert record.status is CheckInStatus.UNMATCHED
     assert record.user_id is None
     assert record.matched_face_profile_id is None
+
 
 def test_history_get_list_and_delete_use_repository_port() -> None:
     service, _ = _service([_profile(1, 10, [1.0, 0.0])])

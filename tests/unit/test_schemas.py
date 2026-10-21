@@ -42,10 +42,12 @@ def test_user_schemas_validate_input_without_exposing_password_hash() -> None:
     with pytest.raises(ValidationError):
         UserCreate(email="not-an-email", password="short", full_name="User")
 
+
 def test_auth_schema_returns_bearer_token() -> None:
     response = TokenResponse(access_token="encoded-jwt")
 
     assert response.model_dump() == {"access_token": "encoded-jwt", "token_type": "bearer"}
+
 
 def test_face_profile_schemas_keep_embedding_out_of_response() -> None:
     request = FaceProfileCreate(image_bytes=b"image")
