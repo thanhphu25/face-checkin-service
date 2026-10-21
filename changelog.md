@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — ci: add hosted clean-compose verification
+
+- Thêm job dựng Compose từ đầu trên GitHub-hosted runner, xác minh migration/app/PostgreSQL/Redis/HTTP và kiểm tra cleanup tài nguyên cách ly.
+- Ghi technical review auth thay thế được chủ project chấp thuận, đồng thời nói rõ không có pair/review chéo của con người.
+
 ## 2026-09-22 — ci: run integration tests and verify clean setup
 
 - Tách CI thành quality/SQLite, PostgreSQL integration bắt buộc và Docker image build; real-model E2E vẫn là verification thủ công có chủ ý.

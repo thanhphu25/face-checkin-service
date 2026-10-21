@@ -93,3 +93,49 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build production image
         run: docker build --tag face-checkin-service:ci .
+
+  compose-clean-setup:
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_PROJECT_NAME: facecheckin_ci_clean
+      APP_IMAGE: face-checkin-service:ci-clean
+      JWT_SECRET: ci-clean-compose-test-only-secret
+      POSTGRES_DB: facecheckin_ci_clean_test
+      POSTGRES_USER: ci_clean
+      POSTGRES_PASSWORD: ci-clean-test-only-password
+      APP_PORT: "58005"
+      POSTGRES_PORT: "55435"
+      REDIS_PORT: "56385"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+      - name: Build Compose image from scratch
+        run: docker compose build --no-cache
+
+      - name: Start clean Compose stack
+        run: docker compose up -d --wait
+
+      - name: Verify migration, dependencies and HTTP endpoints
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:58005/health
+          curl --fail --silent --show-error http://127.0.0.1:58005/openapi.json > /dev/null
+          test "$(docker compose exec -T postgres psql -U ci_clean -d facecheckin_ci_clean_test -Atc 'select version_num from alembic_version;')" = "0002"
+          test "$(docker compose exec -T redis redis-cli ping)" = "PONG"
+          docker compose exec -T app python -c "from app.api.deps import get_engine; assert get_engine().dialect.name == 'postgresql'"
+
+      - name: Show Compose diagnostics on failure
+        if: failure()
+        run: docker compose ps -a && docker compose logs --no-color
+
+      - name: Remove isolated Compose resources
+        if: always()
+        run: docker compose down -v --remove-orphans
+
+      - name: Verify Compose cleanup
+        if: always()
+        run: |
+          test -z "$(docker ps -aq --filter label=com.docker.compose.project=facecheckin_ci_clean)"
+          test -z "$(docker volume ls -q --filter label=com.docker.compose.project=facecheckin_ci_clean)"
