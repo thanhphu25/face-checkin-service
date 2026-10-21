@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — docs(readme): document architecture API and local setup
+
+- Viết lại README thành tài liệu bàn giao gồm phạm vi, kiến trúc, endpoint/quyền, Compose từ máy sạch, test, ADR, env và placeholder account.
+- Ghi rõ Redis chưa được app sử dụng, seed/benchmark chờ Tuần 6 và cách dọn project test mà không xóa nhầm dữ liệu dev.
+
 ## 2026-09-22 — docs(adr): record database auth and embedding decisions
 
 - Thêm bốn ADR có context, decision, alternatives, consequences và điều kiện xem lại cho data, auth, embedding và ranh giới Pha 1/Pha 2.

@@ -175,15 +175,15 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [ ] Test lại trên máy khác/máy sạch trong nhóm (chờ B: docker-compose; nhờ A hoặc C test chéo)
 
 ### C
-- [ ] README đầy đủ: kiến trúc
-- [ ] README đầy đủ: đặc tả API (chờ B: router + auth ổn định)
-- [ ] README đầy đủ: hướng dẫn chạy (chờ B: docker-compose chạy được)
-- [ ] README đầy đủ: ADR ngắn (chờ A/B: cung cấp quyết định DB/auth)
+- [x] README đầy đủ: kiến trúc
+- [x] README đầy đủ: đặc tả API (quyền truy cập và Swagger/OpenAPI)
+- [x] README đầy đủ: hướng dẫn chạy (Docker Compose từ clone sạch, health/log/migration/dọn test)
+- [x] README đầy đủ: ADR ngắn (liên kết bốn ADR phản ánh implementation)
 - [x] Bắt đầu ADR ghi lại quyết định dễ gây hiểu lầm (DB/Repository/migration, auth/RBAC, embedding và ranh giới Pha 1/Pha 2)
 
 ### DoD cuối Tuần 5
 - [ ] `docker compose up` chạy thành công trên máy chưa từng cài project (chờ B: compose; A/C test chéo)
-- [ ] README có đủ 7 mục theo kế hoạch, trừ benchmark (chờ C: README; A/B review phần mình)
+- [x] README có đủ 7 mục theo kế hoạch, benchmark ghi rõ chờ Tuần 6; chưa có xác nhận review A/B của con người
 - [ ] Integration test chạy trong CI, không chỉ unit test (chờ A: integration test; B: nối CI)
 
 ---
