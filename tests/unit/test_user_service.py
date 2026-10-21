@@ -3,9 +3,11 @@ from datetime import UTC, datetime
 import pytest
 
 from app.domain import (
+    AuthenticationFailed,
     EmailAlreadyExists,
     InvalidEmail,
     PasswordHasher,
+    PermissionDenied,
     Role,
     User,
     UserNotFound,
@@ -46,12 +48,14 @@ class InMemoryUserRepository(UserRepository):
 class RecordingPasswordHasher(PasswordHasher):
     def __init__(self) -> None:
         self.passwords: list[str] = []
+        self.verify_attempts: list[tuple[str, str]] = []
 
     def hash(self, password: str) -> str:
         self.passwords.append(password)
         return f"hashed:{password}"
 
     def verify(self, password: str, password_hash: str) -> bool:
+        self.verify_attempts.append((password, password_hash))
         return password_hash == f"hashed:{password}"
 
 
@@ -91,6 +95,47 @@ def test_create_user_rejects_duplicate_normalized_email() -> None:
         service.create_user(email=" PERSON@example.com ", password="password", full_name="Other")
 
 
+def test_authenticate_normalizes_email_and_verifies_password() -> None:
+    service, _, hasher = _service()
+    user = service.create_user(
+        email="person@example.com",
+        password="correct-password",
+        full_name="Person",
+    )
+
+    authenticated = service.authenticate(
+        email=" PERSON@EXAMPLE.COM ",
+        password="correct-password",
+    )
+
+    assert authenticated == user
+    assert hasher.verify_attempts == [("correct-password", user.hashed_password)]
+
+
+@pytest.mark.parametrize(
+    ("email", "password"),
+    [
+        ("person@example.com", "wrong-password"),
+        ("missing@example.com", "wrong-password"),
+        ("not-an-email", "wrong-password"),
+    ],
+)
+def test_authenticate_uses_same_error_for_unknown_email_and_wrong_password(
+    email: str, password: str
+) -> None:
+    service, _, hasher = _service()
+    service.create_user(
+        email="person@example.com",
+        password="correct-password",
+        full_name="Person",
+    )
+
+    with pytest.raises(AuthenticationFailed, match="Incorrect email or password"):
+        service.authenticate(email=email, password=password)
+
+    assert hasher.verify_attempts[-1][0] == password
+
+
 @pytest.mark.parametrize("email", ["", "missing-at.example.com", "@example.com", "a@@b.com"])
 def test_create_user_rejects_invalid_email(email: str) -> None:
     service, _, _ = _service()
@@ -112,3 +157,48 @@ def test_get_list_and_delete_user_through_repository_port() -> None:
         service.get_user(user.id)
     with pytest.raises(UserNotFound):
         service.delete_user(user.id)
+
+
+def test_user_service_enforces_admin_and_self_access() -> None:
+    service, _, _ = _service()
+    admin = User(
+        id=100,
+        email="admin@example.com",
+        hashed_password="hashed",
+        role=Role.ADMIN,
+        full_name="Admin",
+        created_at=datetime(2026, 9, 21, 8, tzinfo=UTC),
+    )
+    ordinary_requester = User(
+        id=200,
+        email="other@example.com",
+        hashed_password="hashed",
+        role=Role.USER,
+        full_name="Other",
+        created_at=datetime(2026, 9, 21, 8, tzinfo=UTC),
+    )
+
+    created = service.create_user_for(
+        admin,
+        email="person@example.com",
+        password="password",
+        full_name="Person",
+    )
+
+    assert service.get_user_for(created, created.id) == created
+    assert service.get_user_for(admin, created.id) == created
+    assert service.list_users_for(admin) == [created]
+    with pytest.raises(PermissionDenied):
+        service.create_user_for(
+            ordinary_requester,
+            email="blocked@example.com",
+            password="password",
+            full_name="Blocked",
+        )
+    with pytest.raises(PermissionDenied):
+        service.get_user_for(ordinary_requester, created.id)
+    with pytest.raises(UserNotFound):
+        service.get_user_for(ordinary_requester, 404)
+
+    service.delete_user_for(admin, created.id)
+    assert service.list_users_for(admin) == []

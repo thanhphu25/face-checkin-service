@@ -12,7 +12,10 @@ from app.domain import (
     FaceProfile,
     FaceProfileRepository,
     NoFaceDetected,
+    PermissionDenied,
+    Role,
     UnmatchedFace,
+    User,
 )
 from app.services import CheckInService
 
@@ -95,12 +98,18 @@ class FixedEmbedder(FaceEmbedder):
         return self.embedding
 
 
-def _profile(profile_id: int, user_id: int, embedding: list[float]) -> FaceProfile:
+def _profile(
+    profile_id: int,
+    user_id: int,
+    embedding: list[float],
+    *,
+    model_name: str = "buffalo_s",
+) -> FaceProfile:
     return FaceProfile(
         id=profile_id,
         user_id=user_id,
         embedding=np.asarray(embedding, dtype=np.float32),
-        model_name="buffalo_s",
+        model_name=model_name,
         created_at=datetime(2026, 9, 21, 8, tzinfo=UTC),
     )
 
@@ -168,6 +177,23 @@ def test_check_in_without_compatible_profiles_is_unmatched() -> None:
     assert records.items[caught.value.record_id].status is CheckInStatus.UNMATCHED
 
 
+def test_check_in_never_matches_profiles_from_other_model_or_dimension() -> None:
+    profiles = [
+        _profile(1, 10, [1.0, 0.0], model_name="different-model"),
+        _profile(2, 20, [1.0, 0.0, 0.0]),
+    ]
+    service, records = _service(profiles)
+
+    with pytest.raises(UnmatchedFace) as caught:
+        service.check_in(b"image")
+
+    assert caught.value.best_score is None
+    record = records.items[caught.value.record_id]
+    assert record.status is CheckInStatus.UNMATCHED
+    assert record.user_id is None
+    assert record.matched_face_profile_id is None
+
+
 def test_history_get_list_and_delete_use_repository_port() -> None:
     service, _ = _service([_profile(1, 10, [1.0, 0.0])])
     record = service.check_in(b"image")
@@ -178,3 +204,28 @@ def test_history_get_list_and_delete_use_repository_port() -> None:
     assert service.list_check_ins() == []
     with pytest.raises(CheckInNotFound):
         service.get_check_in(record.id)
+
+
+def test_check_in_history_is_scoped_to_owner_and_admin() -> None:
+    service, _ = _service([_profile(1, 20, [1.0, 0.0])])
+    record = service.check_in(b"image")
+    owner = User(20, "owner@example.com", "hashed", Role.USER, "Owner", record.checkin_time)
+    other = User(30, "other@example.com", "hashed", Role.USER, "Other", record.checkin_time)
+    admin = User(40, "admin@example.com", "hashed", Role.ADMIN, "Admin", record.checkin_time)
+
+    assert service.list_check_ins_for(owner, user_id=other.id) == [record]
+    assert service.list_check_ins_for(other, user_id=owner.id) == []
+    assert service.list_check_ins_for(admin) == [record]
+    assert service.get_check_in_for(owner, record.id) == record
+    assert service.get_check_in_for(admin, record.id) == record
+    with pytest.raises(PermissionDenied):
+        service.get_check_in_for(other, record.id)
+    with pytest.raises(CheckInNotFound):
+        service.get_check_in_for(other, 404)
+    with pytest.raises(PermissionDenied):
+        service.delete_check_in_for(other, record.id)
+    with pytest.raises(PermissionDenied):
+        service.delete_check_in_for(owner, record.id)
+
+    service.delete_check_in_for(admin, record.id)
+    assert service.list_check_ins_for(admin) == []

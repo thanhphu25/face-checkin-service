@@ -3,9 +3,10 @@ from datetime import UTC, datetime
 
 import numpy as np
 
-from app.domain.entities import FaceProfile
+from app.domain.entities import FaceProfile, User
 from app.domain.errors import FaceEmbeddingFailed, FaceProfileNotFound, UserNotFound
 from app.domain.ports import FaceEmbedder, FaceProfileRepository, UserRepository
+from app.services.authorization import require_owner_or_admin, scope_user_id
 
 
 class FaceProfileService:
@@ -43,6 +44,11 @@ class FaceProfileService:
             )
         )
 
+    def register_face_for(self, requester: User, image_bytes: bytes) -> FaceProfile:
+        if requester.id is None:
+            raise UserNotFound("Authenticated user is not persisted")
+        return self.register_face(requester.id, image_bytes)
+
     def list_profiles(self, *, user_id: int | None = None) -> list[FaceProfile]:
         if user_id is None:
             return self._profiles.list_all()
@@ -50,7 +56,20 @@ class FaceProfileService:
             raise UserNotFound(f"User {user_id} was not found")
         return self._profiles.list_by_user(user_id)
 
+    def list_profiles_for(
+        self, requester: User, *, user_id: int | None = None
+    ) -> list[FaceProfile]:
+        scoped_user_id = scope_user_id(requester, requested_user_id=user_id)
+        return self.list_profiles(user_id=scoped_user_id)
+
     def delete_profile(self, profile_id: int) -> None:
         if self._profiles.get(profile_id) is None:
             raise FaceProfileNotFound(f"Face profile {profile_id} was not found")
+        self._profiles.delete(profile_id)
+
+    def delete_profile_for(self, requester: User, profile_id: int) -> None:
+        profile = self._profiles.get(profile_id)
+        if profile is None:
+            raise FaceProfileNotFound(f"Face profile {profile_id} was not found")
+        require_owner_or_admin(requester, owner_id=profile.user_id)
         self._profiles.delete(profile_id)

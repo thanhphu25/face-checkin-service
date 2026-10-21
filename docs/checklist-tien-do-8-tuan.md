@@ -132,31 +132,33 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 
 > Mục tiêu: 1 GET + 1 POST có auth hoạt động; test pass cho service layer.
 > Đây là điểm dễ lệch chuẩn kiến trúc nhất → cả nhóm pair lại.
+>
+> Bằng chứng kỹ thuật SQLite/PostgreSQL/API/OpenAPI/InsightFace: [week-4-verification.md](week-4-verification.md).
 
 ### Cả nhóm
 - [ ] Pair session ≥ nửa buổi: thống nhất cách implement dependency injection cho auth (chờ Tuần 3: API + service chạy)
 
 ### A
-- [ ] Thêm field `role` cho `User` (nếu chưa có) + migration cập nhật (làm trước B: RBAC)
-- [ ] Chốt dữ liệu user mẫu (`admin`, `user`) và bàn giao spec cho C (chờ B: chốt hash password; A không tạo seed script riêng)
+- [x] Thêm field `role` cho `User` (nếu chưa có) + migration cập nhật (đã có đủ trong domain, ORM và migration `0001`; không tạo migration thừa)
+- [x] Chốt dữ liệu user mẫu (`admin`, `user`) và bàn giao spec cho C (xem `week-4-auth-contract.md`; chỉ chốt identity/role, không commit mật khẩu)
 
 ### B (chính)
-- [ ] JWT login (hash bcrypt/argon2) (chờ C: `UserService`; A: `UserRepository`)
-- [ ] `Depends(get_current_user)` dùng chung ở router (không copy code từng handler) (sau B: JWT login)
-- [ ] RBAC theo role (chờ A: field/migration `role`; sau B: `get_current_user`)
-- [ ] (Cân nhắc) `BaseHTTPMiddleware` chặn `/protected/*` (sau B: auth dependency; không làm song song cùng file auth)
-- [ ] Cập nhật CI chạy `pytest` (chờ C: có unit test; B sở hữu workflow CI)
+- [x] JWT login (Argon2id, tương thích hash PBKDF2 tạm của Tuần 3) (đã nối `UserService`, `UserRepository`, `/auth/login` và `/auth/me`)
+- [x] `Depends(get_current_user)` dùng chung ở route (không copy code từng handler; router có cả endpoint công khai và được bảo vệ)
+- [x] RBAC theo role (dependency `require_admin`, ownership được ép trong Service)
+- [x] Đã cân nhắc `BaseHTTPMiddleware` và không dùng (dependency là cơ chế auth duy nhất, tránh decode/DB lookup hai lần)
+- [x] Cập nhật CI chạy `pytest` và các quality gate trên `main`/`week4`; lệnh CI tương ứng đã chạy pass từ `uv.lock`
 
 ### C
-- [ ] Unit test Service layer (mock Repository): đăng ký khuôn mặt (sau C: `FaceProfileService`)
-- [ ] Unit test Service layer: check-in thành công (sau C: `CheckInService`)
-- [ ] Unit test Service layer: check-in thất bại (sau C: `CheckInService`)
+- [x] Unit test Service layer (fake Repository/FaceEmbedder đúng port): đăng ký khuôn mặt thành công, user thiếu, no-face/multiple-face và ownership
+- [x] Unit test Service layer: check-in thành công, lọc đúng model/dimension và ownership
+- [x] Unit test Service layer: check-in `unmatched`/`no_face`, xác nhận lịch sử thất bại vẫn được lưu
 
 ### DoD cuối Tuần 4
-- [ ] `POST /face-profiles` và `GET /checkins` yêu cầu JWT — xác nhận 401 khi không có token (chờ B: JWT + auth dependency)
-- [ ] RBAC hoạt động: user thường không xóa được record người khác / không tạo được user mới (chờ A: role/seed; B: RBAC)
-- [ ] Unit test service layer chạy pass trong CI (chờ C: unit test; B: CI)
-- [ ] Auth code không bị copy-paste lặp ở từng handler — xác nhận bằng review chéo (chờ B: auth hoàn tất; A/C review)
+- [x] `POST /face-profiles` và `GET /checkins` yêu cầu JWT — API integration test xác nhận 401 khi không có token
+- [x] RBAC hoạt động: user thường không xóa được record người khác / không tạo được user mới
+- [x] Unit test service layer chạy pass bằng đúng dependency và lệnh pytest của CI
+- [ ] Auth code không bị copy-paste lặp ở từng handler — AST test/review kỹ thuật đã pass; còn chờ A/C xác nhận review chéo của con người
 
 ---
 

@@ -3,7 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, Path, Query, Response, UploadFile, status
 
-from app.api.deps import CheckInServiceDependency, UserServiceDependency
+from app.api.deps import (
+    AdminUserDependency,
+    CheckInServiceDependency,
+    CurrentUserDependency,
+    UserServiceDependency,
+)
 from app.api.uploads import read_image_upload
 from app.core.config import get_settings
 from app.schemas import CheckInResult
@@ -28,26 +33,35 @@ def check_in(
 @router.get("", response_model=list[CheckInResult])
 def list_check_ins(
     service: CheckInServiceDependency,
+    current_user: CurrentUserDependency,
     user_id: Annotated[int | None, Query(gt=0)] = None,
     start: Annotated[datetime | None, Query()] = None,
     end: Annotated[datetime | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ):
-    return service.list_check_ins(user_id=user_id, start=start, end=end, limit=limit)
+    return service.list_check_ins_for(
+        current_user,
+        user_id=user_id,
+        start=start,
+        end=end,
+        limit=limit,
+    )
 
 
 @router.get("/{record_id}", response_model=CheckInResult)
 def get_check_in(
     record_id: Annotated[int, Path(gt=0)],
     service: CheckInServiceDependency,
+    current_user: CurrentUserDependency,
 ):
-    return service.get_check_in(record_id)
+    return service.get_check_in_for(current_user, record_id)
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_check_in(
     record_id: Annotated[int, Path(gt=0)],
     service: CheckInServiceDependency,
+    admin: AdminUserDependency,
 ) -> Response:
-    service.delete_check_in(record_id)
+    service.delete_check_in_for(admin, record_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

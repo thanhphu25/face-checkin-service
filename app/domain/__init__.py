@@ -1,5 +1,6 @@
 from app.domain.entities import CheckInRecord, CheckInStatus, FaceProfile, Role, User
 from app.domain.errors import (
+    AuthenticationFailed,
     CheckInNotFound,
     DomainError,
     EmailAlreadyExists,
@@ -7,8 +8,10 @@ from app.domain.errors import (
     FaceProfileNotFound,
     InvalidEmail,
     InvalidImage,
+    InvalidToken,
     MultipleFacesDetected,
     NoFaceDetected,
+    PermissionDenied,
     UnmatchedFace,
     UserNotFound,
 )
@@ -21,6 +24,7 @@ from app.domain.ports import (
 )
 
 __all__ = [
+    "AuthenticationFailed",
     "CheckInRecord",
     "CheckInNotFound",
     "CheckInRepository",
@@ -34,9 +38,11 @@ __all__ = [
     "FaceProfileRepository",
     "InvalidEmail",
     "InvalidImage",
+    "InvalidToken",
     "MultipleFacesDetected",
     "NoFaceDetected",
     "PasswordHasher",
+    "PermissionDenied",
     "Role",
     "UnmatchedFace",
     "User",

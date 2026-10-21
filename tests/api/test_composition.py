@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_engine, get_session, get_session_factory
 from app.core.config import get_settings
-from app.core.security import PBKDF2PasswordHasher
+from app.core.security import Argon2PasswordHasher
 from app.domain import InvalidImage, NoFaceDetected, UnmatchedFace, UserNotFound
 from app.main import create_app
 from app.models import Base, UserORM
@@ -23,11 +23,12 @@ def _reset_database_dependencies() -> None:
 
 
 def test_password_hasher_never_stores_plaintext_and_verifies() -> None:
-    hasher = PBKDF2PasswordHasher()
+    hasher = Argon2PasswordHasher()
 
     password_hash = hasher.hash("strong-password")
 
     assert "strong-password" not in password_hash
+    assert password_hash.startswith("$argon2id$")
     assert hasher.verify("strong-password", password_hash)
     assert not hasher.verify("wrong-password", password_hash)
     assert not hasher.verify("strong-password", "broken-hash")

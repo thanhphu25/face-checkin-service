@@ -11,6 +11,7 @@ from app.schemas import (
     CheckInRead,
     FaceProfileCreate,
     FaceProfileRead,
+    TokenResponse,
     UserCreate,
     UserRead,
 )
@@ -40,6 +41,12 @@ def test_user_schemas_validate_input_without_exposing_password_hash() -> None:
     assert "hashed_password" not in response.model_dump()
     with pytest.raises(ValidationError):
         UserCreate(email="not-an-email", password="short", full_name="User")
+
+
+def test_auth_schema_returns_bearer_token() -> None:
+    response = TokenResponse(access_token="encoded-jwt")
+
+    assert response.model_dump() == {"access_token": "encoded-jwt", "token_type": "bearer"}
 
 
 def test_face_profile_schemas_keep_embedding_out_of_response() -> None:
