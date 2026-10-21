@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — docs(adr): record database auth and embedding decisions
+
+- Thêm bốn ADR có context, decision, alternatives, consequences và điều kiện xem lại cho data, auth, embedding và ranh giới Pha 1/Pha 2.
+- Liên kết ADR từ kiến trúc và cập nhật mô tả transaction theo implementation thật: Repository flush, dependency session commit/rollback.
+
 ## 2026-09-22 — build(compose): run app with PostgreSQL and Redis
 
 - Mở rộng Compose thành app, migration one-shot, PostgreSQL 16 và Redis 7 với healthcheck/dependency rõ ràng.

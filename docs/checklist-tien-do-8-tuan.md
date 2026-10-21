@@ -179,7 +179,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [ ] README đầy đủ: đặc tả API (chờ B: router + auth ổn định)
 - [ ] README đầy đủ: hướng dẫn chạy (chờ B: docker-compose chạy được)
 - [ ] README đầy đủ: ADR ngắn (chờ A/B: cung cấp quyết định DB/auth)
-- [ ] Bắt đầu ADR ghi lại quyết định dễ gây hiểu lầm (chờ A/B: chốt DB/auth; C chốt model)
+- [x] Bắt đầu ADR ghi lại quyết định dễ gây hiểu lầm (DB/Repository/migration, auth/RBAC, embedding và ranh giới Pha 1/Pha 2)
 
 ### DoD cuối Tuần 5
 - [ ] `docker compose up` chạy thành công trên máy chưa từng cài project (chờ B: compose; A/C test chéo)
