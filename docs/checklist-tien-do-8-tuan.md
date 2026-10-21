@@ -171,7 +171,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 
 ### B (chính)
 - [x] `Dockerfile` multi-stage (Python 3.12, frozen production dependencies, runtime non-root và stdlib healthcheck)
-- [ ] `docker-compose.yml` (app + Postgres + Redis dự phòng Pha 2) (sau B: `Dockerfile`; chờ A: migration Postgres)
+- [x] `docker-compose.yml` (app + Postgres + Redis dự phòng Pha 2; migration là service một lần, Redis chưa được app sử dụng)
 - [ ] Test lại trên máy khác/máy sạch trong nhóm (chờ B: docker-compose; nhờ A hoặc C test chéo)
 
 ### C
