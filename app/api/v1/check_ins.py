@@ -52,6 +52,7 @@ def list_check_ins(
 def get_check_in(
     record_id: Annotated[int, Path(gt=0)],
     service: CheckInServiceDependency,
+    current_user: CurrentUserDependency,
 ):
     return service.get_check_in_for(current_user, record_id)
 
