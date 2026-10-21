@@ -11,6 +11,11 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — test(repo): add SQLite and PostgreSQL integration tests
+
+- Chạy cùng bộ integration test qua Repository, domain mapping và migration thật trên SQLite lẫn PostgreSQL 16 cách ly.
+- Bao phủ CRUD, enum, unique email, embedding float32/bytes/dimension/model, cascade/SET NULL, filter, thứ tự, limit và SQLite foreign keys; thêm migration `0002` sửa xung đột giữa CHECK và lịch sử được ẩn danh.
+
 ## 2026-09-22 — test(auth): verify protected endpoints and close week 4
 
 - Thêm SQLite API integration cho login/JWT, 401/403/404, ownership/RBAC; kiểm tra OpenAPI security và auth không copy-paste.
