@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import numpy as np
 import pytest
@@ -6,10 +6,7 @@ from pydantic import ValidationError
 
 from app.domain import CheckInRecord, CheckInStatus, FaceProfile, User
 from app.schemas import (
-    CheckInCreate,
-    CheckInListQuery,
     CheckInRead,
-    FaceProfileCreate,
     FaceProfileRead,
     TokenResponse,
     UserCreate,
@@ -50,7 +47,6 @@ def test_auth_schema_returns_bearer_token() -> None:
 
 
 def test_face_profile_schemas_keep_embedding_out_of_response() -> None:
-    request = FaceProfileCreate(image_bytes=b"image")
     profile = FaceProfile(
         id=1,
         user_id=2,
@@ -61,15 +57,11 @@ def test_face_profile_schemas_keep_embedding_out_of_response() -> None:
 
     response = FaceProfileRead.model_validate(profile)
 
-    assert request.image_bytes == b"image"
     assert "embedding" not in response.model_dump()
-    with pytest.raises(ValidationError):
-        FaceProfileCreate(image_bytes=b"")
 
 
-def test_check_in_schemas_validate_result_and_query_range() -> None:
+def test_check_in_schema_validates_result() -> None:
     now = datetime.now(UTC)
-    request = CheckInCreate(image_bytes=b"image")
     record = CheckInRecord(
         id=1,
         user_id=2,
@@ -81,10 +73,4 @@ def test_check_in_schemas_validate_result_and_query_range() -> None:
     )
 
     response = CheckInRead.model_validate(record)
-    query = CheckInListQuery(user_id=2, start=now, end=now + timedelta(hours=1))
-
-    assert request.image_bytes == b"image"
     assert response.status is CheckInStatus.SUCCESS
-    assert query.limit == 50
-    with pytest.raises(ValidationError, match="end must be later"):
-        CheckInListQuery(start=now, end=now)

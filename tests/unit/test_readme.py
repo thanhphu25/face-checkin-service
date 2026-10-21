@@ -20,7 +20,8 @@ def test_readme_covers_compose_auth_quality_and_phase_boundaries() -> None:
         "uv sync --python 3.12 --frozen --extra dev",
         "REQUIRE_POSTGRES_TESTS=1",
         "Tuần 6",
-        "application Pha 1 chưa sử dụng Redis",
-        "contract/placeholder",
+        "docs/phase-2-improvements.md",
+        "scripts/seed.py",
+        "SEED_ADMIN_PASSWORD",
     ):
         assert required in README

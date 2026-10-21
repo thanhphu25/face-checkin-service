@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, week4_mai, week5]
+    branches: [main, week4_mai, week5, week6]
   pull_request:
 
 permissions:
@@ -105,7 +105,6 @@ jobs:
       POSTGRES_PASSWORD: ci-clean-test-only-password
       APP_PORT: "58005"
       POSTGRES_PORT: "55435"
-      REDIS_PORT: "56385"
     steps:
       - uses: actions/checkout@v4
 
@@ -123,7 +122,6 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:58005/health
           curl --fail --silent --show-error http://127.0.0.1:58005/openapi.json > /dev/null
           test "$(docker compose exec -T postgres psql -U ci_clean -d facecheckin_ci_clean_test -Atc 'select version_num from alembic_version;')" = "0002"
-          test "$(docker compose exec -T redis redis-cli ping)" = "PONG"
           docker compose exec -T app python -c "from app.api.deps import get_engine; assert get_engine().dialect.name == 'postgresql'"
 
       - name: Show Compose diagnostics on failure

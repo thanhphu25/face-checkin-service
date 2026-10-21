@@ -110,7 +110,7 @@ Mục tiêu cuối tuần: máy sạch chạy được toàn hệ thống bằng
 |---|---|---|---|---|
 | `W5-C01` | A | `test(repo): add SQLite and PostgreSQL integration tests` | Mapping, CRUD, cascade/SET NULL và filter repository trên DB thật | Repository/migration ổn định |
 | `W5-C02` | B | `build(docker): add multi-stage application image` | Dockerfile build/runtime, non-root nếu phù hợp, healthcheck app | Dependencies Tuần 4 ổn định |
-| `W5-C03` | B | `build(compose): run app with PostgreSQL and Redis` | Mở rộng Compose Tuần 2 thành app + DB + Redis; migration bằng lệnh rõ ràng | `W5-C02`, migration Postgres |
+| `W5-C03` | B | `build(compose): run app with PostgreSQL` | Compose hiện tại gồm app + DB + migration; không dựng dependency chưa sử dụng | `W5-C02`, migration Postgres |
 | `W5-C04` | C | `docs(adr): record database auth and embedding decisions` | ADR cho DB, auth, embedding và các quyết định dễ hiểu nhầm | Input từ A/B |
 | `W5-C05` | C | `docs(readme): document architecture API and local setup` | Kiến trúc, API, hướng dẫn chạy, env, tài khoản mẫu placeholder và link ADR | `W5-C03`, API/auth ổn định |
 | `W5-C06` | A/B/C | `ci: run integration tests and verify clean setup` | Nối integration test vào CI, test chéo trên máy sạch và đóng DoD | Sau toàn bộ commit Tuần 5 |

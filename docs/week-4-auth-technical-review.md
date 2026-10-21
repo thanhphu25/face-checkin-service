@@ -2,6 +2,10 @@
 
 Ngày review: 2026-09-22.
 
+> Báo cáo lịch sử tại ngày review. Từ 2026-10-19, xác thực JWT/user chuyển sang
+> AuthenticationMiddleware; dependency chỉ lấy principal và kiểm tra quyền. Contract hiện tại
+> nằm tại [week-4-auth-contract.md](week-4-auth-contract.md) và [ADR 0002](adr/0002-authentication-and-authorization.md).
+
 ## Trạng thái và giới hạn bằng chứng
 
 Chủ project đã chấp thuận dùng technical review có cấu trúc này để thay thế hai hoạt động quy trình

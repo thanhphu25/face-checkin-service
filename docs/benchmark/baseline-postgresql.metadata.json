@@ -1,0 +1,26 @@
+{
+  "base_url": "http://127.0.0.1:8001",
+  "concurrency_levels": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "cpu_count": 4,
+  "git_commit": "4affbd0",
+  "history_requests_per_level": 1000,
+  "image": "insightface-sample-crop",
+  "measured_at": "2026-09-22T08:51:48+00:00",
+  "notes": "kaggle-cpu postgresql phase1",
+  "platform": "Linux-6.12.90+-x86_64-with-glibc2.35",
+  "processor": "x86_64",
+  "python_version": "3.12.13",
+  "requests_per_level": 60,
+  "scenarios": [
+    "checkin",
+    "history"
+  ],
+  "settle_seconds": 2.0,
+  "timeout_seconds": 60.0,
+  "warmup_per_level": 5
+}

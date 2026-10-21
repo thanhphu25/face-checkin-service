@@ -3,9 +3,12 @@
 Backend điểm danh bằng khuôn mặt dùng FastAPI, SQLAlchemy/Alembic, PostgreSQL và InsightFace. Tài
 liệu này dành cho người nhận project mà không cần hỏi lại tác giả.
 
-Trạng thái hiện tại: phần kỹ thuật Tuần 5/Pha 1 đã có Repository, API, JWT/RBAC, image Docker,
-Compose và integration test. Seed tái lập và benchmark baseline là công việc Tuần 6, chưa được tuyên
-bố hoàn thành.
+Trạng thái hiện tại: Pha 1 đã có Repository, API, JWT/RBAC, image Docker, Compose, integration test,
+seed dữ liệu mẫu tái lập và benchmark baseline Tuần 6 trên Kaggle CPU. Số liệu và giới hạn được ghi
+trong [báo cáo baseline](docs/benchmark-phase1.md).
+
+Chuẩn bị review online: [mô tả bài toán, nghiệp vụ, baseline và phân tích Pha 2](docs/review-phase1.md),
+kèm [đặc tả API](docs/api-spec.md) đối chiếu với code hiện tại.
 
 ## 1. Nghiệp vụ và phạm vi
 
@@ -18,7 +21,9 @@ embedding, so khớp với các profile cùng model/dimension và luôn ghi lạ
 | Pha 1 | CRUD `User`/`FaceProfile`/`CheckInRecord`, InsightFace CPU, JWT/RBAC, migration, Docker/Compose và baseline ở Tuần 6 | refresh token, liveness, cache, async DB, ANN index |
 | Pha 2 | Chỉ chọn 2–3 cải tiến sau khi đo lại baseline | Không mặc định Redis cache, pgvector/FAISS hay multi-worker trước khi có số liệu |
 
-Redis có trong Compose để chuẩn bị hạ tầng Pha 2 nhưng **application Pha 1 chưa sử dụng Redis**.
+Compose Pha 1 chỉ chạy `app`, `migrate` và `postgres`; không dựng hạ tầng dự phòng.
+Các vấn đề chính, bằng chứng và cách đánh giá cải tiến được tổng hợp tại
+[đề xuất Pha 2](docs/phase-2-improvements.md).
 
 ## 2. Kiến trúc
 
@@ -45,11 +50,13 @@ FaceEmbedder port ◀── app/ml/insightface_embedder.py (buffalo_s, CPU)
 
 Trách nhiệm chính:
 
-- API xác thực request, đọc upload, gọi Service và chuyển domain error sang HTTP.
+- `AuthenticationMiddleware` xác minh Bearer JWT và tải user hiện hành một lần/request.
+  Dependency lấy user từ `request.user`, kiểm tra quyền và khai báo OAuth2 cho Swagger.
+- API đọc upload, gọi Service và chuyển domain error sang HTTP.
 - Service chứa matching, role/ownership và use case; không import FastAPI, SQLAlchemy, ORM hay
   Pydantic schema. `import-linter` cưỡng chế ranh giới này.
-- Repository là nơi duy nhất chuyển ORM ↔ domain. Session/transaction theo request; Repository
-  `flush()`, dependency session commit/rollback.
+- Repository là nơi duy nhất chuyển ORM ↔ domain. Middleware đóng session đọc user trước khi
+  gọi endpoint; session nghiệp vụ theo request, Repository `flush()`, dependency commit/rollback.
 - Alembic là nguồn schema duy nhất. Compose chạy một service `migrate` trước app, không dùng
   `Base.metadata.create_all()`.
 
@@ -62,6 +69,11 @@ Sau khi chạy stack:
 - Swagger UI: <http://localhost:8000/docs>
 - OpenAPI JSON: <http://localhost:8000/openapi.json>
 - Health: <http://localhost:8000/health>
+- Hướng dẫn test thủ công từng API trên Swagger: [docs/swagger-api-testing.md](docs/swagger-api-testing.md)
+
+Bản OpenAPI tĩnh đã commit tại [docs/openapi.json](docs/openapi.json) để đọc contract mà không cần
+dựng stack. Sau khi đổi route hoặc schema, xuất lại bằng `uv run python -m scripts.export_openapi`;
+test sẽ fail nếu file commit bị lệch so với app.
 
 Nếu đổi `APP_PORT`, thay `8000` trong các URL bằng giá trị đó.
 
@@ -99,20 +111,20 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 - Git.
 - Docker Engine/Desktop có Docker Compose v2 (`docker compose version`).
 - Tối thiểu vài GB dung lượng trống; dependency ML làm image lớn hơn web service thông thường.
-- Không cần cài Python, PostgreSQL hay Redis trên host.
+- Không cần cài Python hay PostgreSQL trên host.
 
 ### Clone và cấu hình
 
 ```bash
 git clone https://github.com/thanhphu25/face-checkin-service.git
 cd face-checkin-service
-git switch week5
+git switch --detach v1.0-phase1   # bản bàn giao Pha 1; dùng `git switch week6` nếu muốn nhánh phát triển
 cp .env.example .env
 docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 Điền kết quả lệnh cuối vào `JWT_SECRET` trong `.env`, rồi đổi `POSTGRES_PASSWORD`. Không commit
-`.env`. Nếu host đang dùng các cổng mặc định, đổi `APP_PORT`, `POSTGRES_PORT` hoặc `REDIS_PORT`.
+`.env`. Nếu host đang dùng các cổng mặc định, đổi `APP_PORT` hoặc `POSTGRES_PORT`.
 
 ### Build, migration và khởi động
 
@@ -124,8 +136,7 @@ docker compose ps -a
 ```
 
 `up` chờ PostgreSQL healthy, chạy đúng một container `migrate` với `alembic upgrade head`, rồi mới
-khởi động app. `migrate` kết thúc với exit code 0 là trạng thái đúng. Redis khởi động độc lập và app
-không phụ thuộc Redis trong Pha 1.
+khởi động app. `migrate` kết thúc với exit code 0 là trạng thái đúng.
 
 Kiểm tra và xem log:
 
@@ -133,7 +144,7 @@ Kiểm tra và xem log:
 curl http://localhost:8000/health
 curl -fsS -o /dev/null http://localhost:8000/docs
 docker compose logs migrate
-docker compose logs --tail=100 app postgres redis
+docker compose logs --tail=100 app postgres
 ```
 
 Sau khi sửa migration, có thể chạy idempotent rồi restart app:
@@ -142,6 +153,29 @@ Sau khi sửa migration, có thể chạy idempotent rồi restart app:
 docker compose run --rm migrate
 docker compose restart app
 ```
+
+### Seed dữ liệu mẫu
+
+Stack vừa dựng có schema nhưng chưa có tài khoản nào. `scripts/seed.py` tạo admin mẫu, user mẫu, một
+face profile thật và ba bản ghi lịch sử (`success`, `unmatched`, `no_face`). Script idempotent: chạy
+lại không nhân đôi dữ liệu.
+
+Seed chạy từ môi trường dev trên host, không chạy trong container: ảnh khuôn mặt mẫu lấy từ package
+InsightFace đã cài, còn runtime image cố ý loại bỏ `scripts/` và thư mục ảnh đó. Compose đã publish
+cổng PostgreSQL nên host kết nối thẳng vào database của stack:
+
+```bash
+uv sync --python 3.12 --frozen --extra dev
+export SEED_ADMIN_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+export SEED_USER_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+DATABASE_URL="postgresql+psycopg://app:<POSTGRES_PASSWORD>@localhost:5432/facecheckin" \
+JWT_SECRET=<JWT_SECRET trong .env> \
+  uv run python -m scripts.seed
+```
+
+Ghi lại hai mật khẩu vừa sinh ở nơi an toàn — chúng chỉ tồn tại trong shell của bạn, repo không lưu.
+Thêm `--skip-face-profile` nếu chỉ cần tài khoản và không muốn tải model embedding; khi đó check-in
+sẽ trả `unmatched` vì chưa có profile nào.
 
 ### Dừng và dọn đúng phạm vi
 
@@ -188,8 +222,36 @@ uv run pytest -q tests/integration
 Tên database PostgreSQL test bắt buộc chứa `test`. Hãy tạo database/container riêng, chạy migration
 và drop riêng nó; không trỏ lệnh này vào database dev.
 
-Benchmark Pha 1 sẽ được chạy và lưu số liệu trong **Tuần 6**. `scripts/benchmark.py` hiện mới là
-harness; README không công bố p50/p95/p99, throughput hay kết luận tối ưu khi chưa có phép đo thật.
+### Baseline Pha 1
+
+Đo trên Kaggle CPU notebook (4 core, commit `4affbd0`, Uvicorn 1 worker), 16 mức đo đều không lỗi.
+Báo cáo đầy đủ kèm biểu đồ và giới hạn: [docs/benchmark-phase1.md](docs/benchmark-phase1.md); số
+liệu gốc ở [docs/benchmark/](docs/benchmark/).
+
+| Scenario | Backend | c=1 | c=2 | c=4 | c=8 |
+|---|---|---:|---:|---:|---:|
+| `POST /checkins` (req/s) | SQLite | 4.82 | 7.13 | 7.36 | 8.54 |
+| `POST /checkins` (req/s) | PostgreSQL | 4.83 | 6.63 | 7.17 | 8.46 |
+| `POST /checkins` p95 (ms) | PostgreSQL | 227.7 | 350.4 | 734.0 | 1116.0 |
+| `GET /checkins` (req/s) | SQLite | 162.9 | 180.4 | 123.2 | 81.6 |
+| `GET /checkins` (req/s) | PostgreSQL | 139.1 | 168.7 | 157.0 | 150.3 |
+| `GET /checkins` p95 (ms) | PostgreSQL | 7.8 | 13.2 | 32.0 | 73.5 |
+
+Ba điều đọc được từ baseline:
+
+- Check-in bị giới hạn bởi CPU inference (~200 ms/request); server dùng 3,1/4 core ngay ở một
+  client và máy bão hoà từ concurrency 2–4. Backend database gần như không ảnh hưởng tới đường này.
+- Đường đọc nhanh hơn ~34 lần nhưng chỉ dùng 1,2–1,6/4 core ở concurrency 8, tức còn hơn nửa máy
+  rảnh.
+- Dưới tải đọc đồng thời, SQLite tụt 54,8% so với đỉnh còn PostgreSQL chỉ giảm 10,9%.
+
+Chạy lại (quy trình Kaggle đầy đủ ở [docs/benchmark-kaggle.md](docs/benchmark-kaggle.md), điều kiện
+đo ở [ADR 0005](docs/adr/0005-benchmark-method-and-baseline-conditions.md)):
+
+```bash
+JWT_SECRET=... SEED_ADMIN_PASSWORD=... SEED_USER_PASSWORD=... \
+  uv run python -m scripts.run_baseline --backend sqlite --output-dir docs/benchmark
+```
 
 ## 6. Quyết định thiết kế
 
@@ -201,6 +263,8 @@ harness; README không công bố p50/p95/p99, throughput hay kết luận tối
   float32/L2/bytes cùng dimension/model name.
 - [ADR 0004](docs/adr/0004-phase-1-infrastructure-boundary.md): chưa dùng Redis cache,
   pgvector/FAISS hay async DB trong Pha 1.
+- [ADR 0005](docs/adr/0005-benchmark-method-and-baseline-conditions.md): điều kiện đo baseline —
+  một worker, hai scenario, hai database, percentile nearest-rank.
 
 ## 7. Biến môi trường và tài khoản mẫu
 
@@ -217,17 +281,15 @@ harness; README không công bố p50/p95/p99, throughput hay kết luận tối
 | `SIMILARITY_THRESHOLD` | `0.40` | Ngưỡng cosine tại thời điểm check-in |
 | `EMBEDDING_MODEL` | `buffalo_s` | Model ghi cùng face profile |
 | `MAX_UPLOAD_MB` | `5` | Giới hạn JPEG/PNG trước inference |
-| `LOG_LEVEL` | `INFO` | Mức log app |
 | `APP_PORT` | `8000` | Cổng HTTP trên host |
-| `REDIS_PORT` | `6379` | Cổng Redis dự phòng trên host |
 | `APP_IMAGE` | `face-checkin-service:local` | Tên/tag image do Compose build |
 
-Tài khoản dưới đây mới là **contract/placeholder**. Seed Tuần 6 chưa tồn tại, nên clone sạch chưa thể
-đăng nhập bằng chúng cho tới khi seed được triển khai hoặc người vận hành tự tạo user an toàn.
+`scripts/seed.py` tạo đúng hai tài khoản dưới đây. Email là cố định và nằm trong repo; mật khẩu do
+người chạy cung cấp qua biến môi trường, tối thiểu 12 ký tự, và không bao giờ được commit.
 
-| Tên | Email placeholder | Role | Mật khẩu |
+| Tên | Email | Role | Mật khẩu |
 |---|---|---|---|
-| Admin mẫu | `admin.sample@example.test` | `admin` | Người chạy tự cung cấp, không lưu trong repo |
-| User mẫu | `user.sample@example.test` | `user` | Người chạy tự cung cấp, không lưu trong repo |
+| Admin mẫu | `admin.sample@example.test` | `admin` | `SEED_ADMIN_PASSWORD`, người chạy tự sinh |
+| User mẫu | `user.sample@example.test` | `user` | `SEED_USER_PASSWORD`, người chạy tự sinh |
 
 Không commit password, JWT, token, ảnh mặt, `.env`, database, model cache hay file ONNX tải về.

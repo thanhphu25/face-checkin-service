@@ -11,6 +11,58 @@ Mỗi commit mới phải thêm một mục ở đầu lịch sử theo định 
 
 Chỉ ghi thay đổi có ý nghĩa với dự án, viết ngắn gọn và sắp xếp commit mới nhất lên trước.
 
+## 2026-09-22 — docs(checklist): record the phase 1 release tag
+
+- Tạo annotated tag `v1.0-phase1` trỏ vào commit `6c0c994` — commit có CI xanh cả bốn job ở run `35708486461`.
+- Tick các dòng còn lại của checklist bàn giao và DoD Tuần 6; chỉ còn "đã nhận hệ thống từ nhóm khác" là sự kiện bên ngoài.
+
+## 2026-09-22 — chore(release): finalize phase 1 handoff
+
+- Chạy lại toàn bộ đường bàn giao trên project Compose cách ly: build, up, migrate, seed từ host, đăng nhập, RBAC 401, Swagger, check-in thật và dọn sạch container/volume.
+- Xác nhận `docs/openapi.json` đã commit khớp tuyệt đối với `/openapi.json` của container đang chạy.
+- Rà secret toàn repo, sửa hướng dẫn clone sang tag bàn giao và ghi bằng chứng vào `docs/week-6-verification.md`; ký bảy trên tám dòng checklist bàn giao, còn lại là tag.
+
+## 2026-09-22 — docs(handoff): document benchmark reproduction
+
+- Liệt kê đủ gói bàn giao benchmark: harness, runner, seed, nguồn ảnh mẫu và số liệu Tuần 6.
+- Thêm lệnh smoke chạy được ngoài Kaggle trong khoảng một phút, đã chạy đúng nguyên văn trước khi ghi vào tài liệu.
+- Chốt 5 điều kiện để một lượt đo Tuần 8 được coi là so sánh được với baseline Tuần 6.
+
+## 2026-09-22 — docs(benchmark): report phase 1 baseline
+
+- Thêm `docs/benchmark-phase1.md`: bảng, biểu đồ throughput/p50 cho hai scenario và hai backend, nhận xét và giới hạn của baseline.
+- README mục 5 có bảng tóm tắt baseline và ba kết luận chính, thay cho ghi chú "chờ Tuần 6".
+- Ghi rõ điểm nghẽn đo được là CPU inference (~200 ms/request) và việc đường đọc để trống hơn nửa máy; không chọn cải tiến Pha 2 ở đây.
+
+## 2026-09-22 — perf(results): add phase 1 baseline data
+
+- Thêm số liệu baseline đo thật trên Kaggle CPU (commit `4affbd0`, 4 core) cho SQLite và PostgreSQL: 16 mức đo, `error_count=0` toàn bộ.
+- Sửa cell PostgreSQL trong hướng dẫn Kaggle theo lệnh chạy được thật: image Kaggle cài cluster 14 nên dùng `service postgresql start`.
+- Sửa mô tả sai đơn vị CPU: `cpu_percent_system` là phần trăm toàn máy (0–100%), `cpu_percent_server` mới là phần trăm của một core.
+
+## 2026-09-22 — docs(api): export OpenAPI and record benchmark method
+
+- Thêm `scripts/export_openapi.py` và bản `docs/openapi.json` đã commit; test so sánh với app nên schema lệch sẽ fail thay vì âm thầm cũ đi.
+- Thêm ADR 0005 ghi điều kiện đo baseline: một worker, hai scenario, hai database, percentile nearest-rank, warm-up và khoảng lặng CPU.
+- README trỏ tới OpenAPI tĩnh, quy trình Kaggle và ADR mới; vẫn chưa công bố số liệu vì chưa chạy trên Kaggle.
+
+## 2026-09-22 — perf(benchmark): finalize Kaggle CPU harness
+
+- Nâng `scripts/benchmark.py` từ scaffold Tuần 3 thành harness baseline: sweep nhiều mức concurrency, warm-up riêng, hai scenario `checkin`/`history`, CSV kết quả và metadata phần cứng/tham số.
+- Đo CPU toàn máy và CPU riêng tiến trình server từ `/proc`; bỏ qua cửa sổ quá ngắn và chờ `--settle-seconds` sau warm-up để thread pool ONNX không bị tính sang mức đo kế tiếp.
+- Thêm `scripts/run_baseline.py` chạy trọn migration → seed → Uvicorn một worker → benchmark → dừng server, và hướng dẫn Kaggle CPU cho cả SQLite lẫn PostgreSQL.
+
+## 2026-09-22 — feat(seed): add reproducible sample data
+
+- Thêm `scripts/seed.py` tạo admin/user mẫu, face profile thật và lịch sử `success`/`unmatched`/`no_face`; chạy lại không nhân đôi dữ liệu.
+- Mật khẩu seed đọc từ `SEED_ADMIN_PASSWORD`/`SEED_USER_PASSWORD` và bị từ chối nếu thiếu hoặc quá ngắn; repo không chứa giá trị thật.
+- Tách ảnh mẫu InsightFace thành `scripts/sample_images.py` dùng chung cho seed/benchmark, và ghi cách seed vào README cùng `.env.example`.
+
+## 2026-09-22 — ci: run pipeline on the week 6 branch
+
+- Thêm `week6` vào push trigger để pipeline chạy trước khi tag `v1.0-phase1`, thay vì chỉ chạy qua pull request.
+- Cập nhật test workflow theo danh sách branch mới và đặt lại tên test cho không gắn cứng vào một tuần.
+
 ## 2026-09-22 — docs(checklist): record hosted clean-setup evidence
 
 - Ghi GitHub Actions run `35703077030`: bốn job xanh, gồm Compose build/up/migration/health/HTTP và cleanup trên hosted runner sạch.

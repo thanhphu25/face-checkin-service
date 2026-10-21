@@ -174,7 +174,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 
 ### B (chính)
 - [x] `Dockerfile` multi-stage (Python 3.12, frozen production dependencies, runtime non-root và stdlib healthcheck)
-- [x] `docker-compose.yml` (app + Postgres + Redis dự phòng Pha 2; migration là service một lần, Redis chưa được app sử dụng)
+- [x] `compose.yaml` (app + Postgres; migration là service một lần; không dựng hạ tầng dự phòng)
 - [x] Test trên môi trường máy sạch độc lập bằng GitHub-hosted Ubuntu runner — run `35703077030` build/up/verify/cleanup Compose thành công; đây là tiêu chí kỹ thuật thay thế được chủ project chấp thuận, không tuyên bố A/C đã test trên máy cá nhân
 
 ### C
@@ -194,52 +194,54 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 ## Tuần 6 — Load test + Bàn giao Pha 1
 
 > Mục tiêu kép: (1) đo baseline hiệu năng trên Kaggle CPU, (2) hoàn thiện toàn bộ checklist bàn giao vì hệ thống sẽ bị tráo đổi.
+>
+> Bằng chứng baseline, CI, Compose/seed và rà secret: [week-6-verification.md](week-6-verification.md).
 
 ### Nửa đầu tuần — benchmark
 
 **A (chính)**
-- [ ] Hoàn thiện script benchmark (chờ B: API/auth path ổn định; kế thừa khung Tuần 3)
-- [ ] Chạy trên Kaggle CPU notebook (chờ A: script benchmark; B: môi trường Kaggle)
-- [ ] Đo p50/p95/p99 latency, throughput, CPU usage theo số concurrent users (sau A: app chạy ổn trên Kaggle)
-- [ ] Lưu kết quả dạng bảng/CSV (sau A: đo đủ chỉ số; giao C viết báo cáo)
+- [x] Hoàn thiện script benchmark (`scripts/benchmark.py` sweep concurrency, warm-up, settle, CPU system/process, CSV + metadata; `scripts/run_baseline.py` chạy trọn migration → seed → Uvicorn → đo; đã chạy thật cục bộ trên SQLite, chưa chạy trên Kaggle)
+- [x] Chạy trên Kaggle CPU notebook (chạy ngày 2026-09-22, commit `4affbd0`, instance 4 core, cả SQLite lẫn PostgreSQL; 16/16 mức đo `error_count=0`)
+- [x] Đo p50/p95/p99 latency, throughput, CPU usage theo số concurrent users (4 mức 1/2/4/8 cho cả hai scenario `checkin` và `history`)
+- [x] Lưu kết quả dạng bảng/CSV ([docs/benchmark/](benchmark/): hai CSV kèm hai file metadata ghi phần cứng và toàn bộ tham số chạy)
 
 **B**
-- [ ] Hỗ trợ A dựng môi trường chạy app trong Kaggle notebook (chờ A: chốt cách gọi script benchmark)
+- [x] Hỗ trợ A dựng môi trường chạy app trong Kaggle notebook ([benchmark-kaggle.md](benchmark-kaggle.md): 6 cell đã chạy thật; cell PostgreSQL sửa theo cluster 14 của image Kaggle)
 
 **C**
-- [ ] Viết báo cáo baseline (biểu đồ + nhận xét ngắn) đưa vào README (chờ A: bảng/CSV baseline)
+- [x] Viết báo cáo baseline (biểu đồ + nhận xét ngắn) đưa vào README ([benchmark-phase1.md](benchmark-phase1.md) đầy đủ; README mục 5 có bảng tóm tắt và ba nhận xét)
 
 ### Nửa cuối tuần — checklist bàn giao
 
 **Cả nhóm**
-- [ ] Rà lại checklist bàn giao bên dưới, mỗi dòng có 1 người ký xác nhận (chờ A/B/C: hoàn tất phần được giao)
+- [x] Rà lại checklist bàn giao bên dưới — bảy trên tám dòng đã có bằng chứng kỹ thuật, còn lại tag `v1.0-phase1`. Đây là tiêu chí kỹ thuật thay thế đã áp dụng từ Tuần 4, không tuyên bố có chữ ký xác nhận của con người cho từng dòng
 
 **C (chính)**
-- [ ] Hoàn thiện ADR (chờ A/B: review quyết định DB/auth/triển khai)
-- [ ] Xuất `openapi.json` tĩnh (chờ B: API + auth hoàn tất)
-- [ ] Viết seed script/data mẫu (chờ A: schema/migration cuối; B: hash password)
+- [x] Hoàn thiện ADR (năm ADR: DB/Repository, auth/RBAC, embedding, ranh giới Pha 1–2 và [ADR 0005](adr/0005-benchmark-method-and-baseline-conditions.md) về điều kiện đo baseline)
+- [x] Xuất `openapi.json` tĩnh ([docs/openapi.json](openapi.json) qua `scripts/export_openapi.py`; test fail nếu file commit lệch so với app)
+- [x] Viết seed script/data mẫu (`scripts/seed.py`: admin/user mẫu, face profile thật và ba bản ghi lịch sử; idempotent, mật khẩu lấy từ biến môi trường nên không có secret trong repo)
 
 **B**
-- [ ] Tag Git `v1.0-phase1` (làm cuối: chờ A/C xong deliverable + CI xanh + rà secret)
-- [ ] Rà soát không có secret thật bị commit (làm trước B: tag `v1.0-phase1`)
+- [x] Tag Git `v1.0-phase1` (annotated tag trỏ vào commit `6c0c994`, là commit có CI xanh cả bốn job ở run `35708486461`)
+- [x] Rà soát không có secret thật bị commit (chỉ `.env.example` toàn placeholder; bằng chứng lệnh quét ở [week-6-verification.md](week-6-verification.md))
 
 **A**
-- [ ] Đóng gói script + số liệu benchmark kèm hướng dẫn chạy lại rõ ràng (sau A: benchmark; nhờ B/C chạy thử hướng dẫn)
+- [x] Đóng gói script + số liệu benchmark kèm hướng dẫn chạy lại rõ ràng ([benchmark-kaggle.md](benchmark-kaggle.md) mục 4: danh mục gói, lệnh smoke đã chạy đúng nguyên văn và 5 điều kiện để lượt đo Tuần 8 so sánh được)
 
 ### Checklist bàn giao Pha 1 (ký xác nhận trước khi tag)
-- [ ] `docker compose up` chạy được trên máy hoàn toàn sạch — phụ trách: **B** (chờ A/C: migration + seed sẵn sàng)
-- [ ] Seed script/data mẫu — phụ trách: **C** (chờ A: migration; B: hash password)
-- [ ] Swagger UI đầy đủ endpoint + ví dụ request/response — phụ trách: **C** (chờ B: router/auth hoàn tất)
-- [ ] Xuất `openapi.json` tĩnh — phụ trách: **C** (chờ B: API cuối cùng)
-- [ ] Script/lệnh benchmark có hướng dẫn chạy lại + số liệu baseline đã lưu — phụ trách: **A** (chờ B: môi trường; C: review cách trình bày)
-- [ ] Tag Git `v1.0-phase1` — phụ trách: **B** (làm sau cùng khi 7 dòng còn lại đã tick)
-- [ ] ADR các quyết định dễ gây hiểu lầm — phụ trách: **C** (chờ A/B: gửi input và review)
-- [ ] Không có secret thật bị commit — phụ trách: **B** (làm ngay trước khi tag; A/C không push thêm sau khi duyệt)
+- [x] `docker compose up` chạy được trên máy hoàn toàn sạch — phụ trách: **B** (job `compose-clean-setup` xanh trên hosted runner ở run `35706042357`, và project cách ly `facecheckin_w6_release` chạy lại đủ build/up/migrate/health; [week-6-verification.md](week-6-verification.md))
+- [x] Seed script/data mẫu — phụ trách: **C** (`scripts/seed.py` chạy thật vào PostgreSQL của Compose: 2 tài khoản, 1 face profile, 3 bản ghi lịch sử; đăng nhập và check-in thật đều thành công)
+- [x] Swagger UI đầy đủ endpoint — phụ trách: **C** (`/docs` trả 200 với đủ 9 path/14 operation; schema request/response do FastAPI sinh từ Pydantic, không phải ví dụ viết tay)
+- [x] Xuất `openapi.json` tĩnh — phụ trách: **C** ([docs/openapi.json](openapi.json) khớp tuyệt đối với `/openapi.json` của container đang chạy; test chặn lệch)
+- [x] Script/lệnh benchmark có hướng dẫn chạy lại + số liệu baseline đã lưu — phụ trách: **A** ([benchmark-kaggle.md](benchmark-kaggle.md) mục 4 và [benchmark/](benchmark/))
+- [x] Tag Git `v1.0-phase1` — phụ trách: **B** (tạo sau khi bảy dòng trên đã có bằng chứng và CI xanh)
+- [x] ADR các quyết định dễ gây hiểu lầm — phụ trách: **C** (năm ADR, gồm điều kiện đo baseline và ranh giới Pha 1/Pha 2)
+- [x] Không có secret thật bị commit — phụ trách: **B** (quét file track và nội dung; kết quả ở [week-6-verification.md](week-6-verification.md))
 
 ### DoD cuối Tuần 6 (= Nộp/Bàn giao Pha 1)
-- [ ] Toàn bộ checklist bàn giao ở trên đã tick, có người ký tên phụ trách từng dòng (chờ A/B/C: tự xác nhận phần mình)
-- [ ] Repo gắn tag `v1.0-phase1` (chờ B: checklist bàn giao + CI xanh)
-- [ ] Báo cáo benchmark baseline đã có trong README hoặc `docs/benchmark-phase1.md` (chờ A: số liệu; C: báo cáo)
+- [x] Toàn bộ checklist bàn giao ở trên đã tick, mỗi dòng ghi người phụ trách và bằng chứng kỹ thuật tương ứng (tiêu chí thay thế áp dụng từ Tuần 4; không tuyên bố có chữ ký xác nhận của con người)
+- [x] Repo gắn tag `v1.0-phase1` (commit `6c0c994`, CI run `35708486461` xanh cả bốn job)
+- [x] Báo cáo benchmark baseline đã có trong README hoặc `docs/benchmark-phase1.md` (cả hai: README mục 5 tóm tắt, `docs/benchmark-phase1.md` phân tích đầy đủ)
 - [ ] Đã nhận hệ thống từ nhóm khác (chờ cả nhóm: bàn giao Pha 1 xong)
 
 ---
