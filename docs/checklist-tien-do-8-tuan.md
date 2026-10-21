@@ -175,7 +175,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 ### B (chính)
 - [x] `Dockerfile` multi-stage (Python 3.12, frozen production dependencies, runtime non-root và stdlib healthcheck)
 - [x] `docker-compose.yml` (app + Postgres + Redis dự phòng Pha 2; migration là service một lần, Redis chưa được app sử dụng)
-- [ ] Test lại trên máy khác/máy sạch trong nhóm (clean-directory cùng máy đã pass; vẫn chờ A hoặc C test chéo trên máy khác)
+- [x] Test trên môi trường máy sạch độc lập bằng GitHub-hosted Ubuntu runner — run `35703077030` build/up/verify/cleanup Compose thành công; đây là tiêu chí kỹ thuật thay thế được chủ project chấp thuận, không tuyên bố A/C đã test trên máy cá nhân
 
 ### C
 - [x] README đầy đủ: kiến trúc
@@ -185,7 +185,7 @@ Bằng chứng API, SQLite/PostgreSQL, transaction và embedding thật: [week-3
 - [x] Bắt đầu ADR ghi lại quyết định dễ gây hiểu lầm (DB/Repository/migration, auth/RBAC, embedding và ranh giới Pha 1/Pha 2)
 
 ### DoD cuối Tuần 5
-- [ ] `docker compose up` chạy thành công trên máy chưa từng cài project (clone/thư mục sạch cùng máy đã pass; vẫn chờ A/C test chéo trên máy khác)
+- [x] `docker compose up` chạy thành công trên GitHub-hosted runner sạch — run `35703077030`, job `compose-clean-setup`; tiêu chí thay thế được chủ project chấp thuận, không tuyên bố là máy của thành viên A/C
 - [x] README có đủ 7 mục theo kế hoạch, benchmark ghi rõ chờ Tuần 6; chưa có xác nhận review A/B của con người
 - [x] Integration test chạy trong CI, không chỉ unit test (job SQLite và PostgreSQL thật bắt buộc; đã mô phỏng đủ job cục bộ, run GitHub được kiểm tra sau push)
 
