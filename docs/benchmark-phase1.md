@@ -2,23 +2,18 @@
 
 Số liệu gốc: [benchmark/baseline-sqlite.csv](benchmark/baseline-sqlite.csv) và
 [benchmark/baseline-postgresql.csv](benchmark/baseline-postgresql.csv), kèm hai file metadata ghi
-phần cứng và toàn bộ tham số. Phương pháp đo và lý do chọn: [ADR 0005](adr/0005-benchmark-method-and-baseline-conditions.md).
-Cách chạy lại: [benchmark-kaggle.md](benchmark-kaggle.md).
+phần cứng và toàn bộ tham số. Phương pháp đo và lý do chọn: [Phương pháp benchmark](architecture.md#benchmark).
+Cách chạy lại nằm tại [mục Kaggle](#7-chạy-lại-trên-kaggle-cpu).
 
 ## 1. Tóm tắt
 
+Đây là số liệu lịch sử tại commit `4affbd0` ngày 2026-09-22. Middleware hiện tại được cập nhật
+sau đó; chưa có lượt đo mới hay kết quả trước/sau cải tiến trong bộ dữ liệu này.
+
 - **Đường ghi (`POST /checkins`) là điểm nghẽn**: 4,82 req/s ở một client, trần khoảng 8,5 req/s.
   Đường đọc nhanh hơn khoảng **34 lần** trên cùng máy.
-- **Inference chiếm hết CPU**: ngay ở concurrency 1, tiến trình server đã dùng 3,1/4 core. Từ
-  concurrency 4 trở lên máy bão hoà 99,7%, nên tăng concurrency chỉ làm latency dài ra chứ gần như
-  không thêm throughput.
-- **Database gần như không ảnh hưởng tới check-in** (chênh ≤7%, trong khoảng nhiễu) vì thời gian là
-  của detection/embedding, không phải của truy vấn.
-- **Database ảnh hưởng mạnh tới đường đọc khi có tải đồng thời**: ở concurrency 8, PostgreSQL đạt
-  150,3 req/s còn SQLite tụt xuống 81,6 req/s — PostgreSQL nhanh hơn **1,84 lần** và p95 thấp hơn
-  34,5%.
-- **Đường đọc không bị nghẽn vì CPU**: ở concurrency 8 nó chỉ dùng 1,2–1,6/4 core và để hơn nửa máy
-  rảnh, tức nghẽn nằm ở chỗ khác chứ không phải thiếu CPU.
+- CPU gần bão hòa khi tăng tải điểm danh; đường đọc dùng ít CPU hơn. Baseline này chưa phân rã
+  thời gian từng công đoạn, vì vậy chưa kết luận được tỷ trọng chi phí inference hay database.
 
 ## 2. Điều kiện đo
 
@@ -50,38 +45,6 @@ trăm của một core cho riêng tiến trình Uvicorn (389% ≈ 3,89 core).
 | PostgreSQL | 4 | 7.17 | 547.8 | 734.0 | 849.1 | 99.2 | 388.4 |
 | PostgreSQL | 8 | 8.46 | 938.1 | 1116.0 | 1268.5 | 99.7 | 387.9 |
 
-Throughput:
-
-```text
-SQLite
-  c=1  #####################                      4.82 req/s
-  c=2  ################################           7.13 req/s
-  c=4  #################################          7.36 req/s
-  c=8  ######################################     8.54 req/s
-
-PostgreSQL
-  c=1  #####################                      4.83 req/s
-  c=2  #############################              6.63 req/s
-  c=4  ################################           7.17 req/s
-  c=8  ######################################     8.46 req/s
-```
-
-Độ trễ p50:
-
-```text
-SQLite
-  c=1  ########                                 207.00 ms
-  c=2  ###########                              274.67 ms
-  c=4  ######################                   546.04 ms
-  c=8  #####################################    919.81 ms
-
-PostgreSQL
-  c=1  ########                                 206.40 ms
-  c=2  ############                             294.84 ms
-  c=4  ######################                   547.78 ms
-  c=8  ######################################   938.09 ms
-```
-
 Từ concurrency 1 lên 8, throughput chỉ tăng 77% (SQLite) và 75% (PostgreSQL), trong khi p50 tăng 4,4
 và 4,6 lần. Đây là dáng điệu của một hệ đã bão hoà: request xếp hàng chứ không được phục vụ nhanh
 hơn. CPU server đạt 389% trên 4 core — gần như không còn dư địa.
@@ -99,38 +62,6 @@ hơn. CPU server đạt 389% trên 4 core — gần như không còn dư địa.
 | PostgreSQL | 4 | 157.01 | 25.1 | 32.0 | 36.0 | 46.9 | 114.1 |
 | PostgreSQL | 8 | 150.27 | 50.5 | 73.5 | 102.8 | 50.3 | 121.1 |
 
-Throughput:
-
-```text
-SQLite
-  c=1  ##################################       162.86 req/s
-  c=2  ######################################   180.43 req/s
-  c=4  ##########################               123.21 req/s
-  c=8  #################                         81.61 req/s
-
-PostgreSQL
-  c=1  #############################            139.12 req/s
-  c=2  ####################################     168.70 req/s
-  c=4  #################################        157.01 req/s
-  c=8  ################################         150.27 req/s
-```
-
-Độ trễ p50:
-
-```text
-SQLite
-  c=1  ##                                         6.03 ms
-  c=2  ####                                      10.82 ms
-  c=4  #############                             32.26 ms
-  c=8  ######################################    97.74 ms
-
-PostgreSQL
-  c=1  ###                                        7.07 ms
-  c=2  #####                                     11.59 ms
-  c=4  ##########                                25.08 ms
-  c=8  ####################                      50.52 ms
-```
-
 Cả hai backend đều đạt đỉnh ở concurrency 2. Sau đó SQLite tụt 54,8% so với đỉnh còn PostgreSQL chỉ
 giảm 10,9%. p50 của SQLite tăng 16,2 lần từ concurrency 1 đến 8, PostgreSQL tăng 7,1 lần.
 
@@ -139,19 +70,13 @@ socket/protocol. Ưu thế đó biến mất ngay khi có tải đồng thời.
 
 ## 5. Nhận xét
 
-1. **Chi phí một lần check-in ≈ 200 ms CPU inference.** p50 ở concurrency 1 là 207 ms (SQLite) và
-   206 ms (PostgreSQL); phần database gần như không đóng góp. Mọi cải thiện đáng kể cho đường ghi
-   phải đến từ inference, không phải từ tầng dữ liệu.
-2. **Máy bão hoà từ concurrency 2–4.** CPU máy đã 95–99% ở concurrency 2. Thêm client sau điểm đó
-   chỉ đổi lấy latency: p99 lên tới 1,27 giây ở concurrency 8.
-3. **Đường đọc để trống hơn nửa máy.** Ở concurrency 8, CPU máy chỉ 48,6% (SQLite) và 50,3%
-   (PostgreSQL), CPU server 1,2–1,6 core. Một tiến trình đồng bộ duy nhất không dùng hết 4 core.
-4. **SQLite không chịu được tải đọc đồng thời, PostgreSQL thì có.** Đây là bằng chứng đo được cho
-   việc giữ PostgreSQL làm cấu hình chạy thật, và là lý do số liệu PostgreSQL mới là mốc so sánh
-   chính của Pha 2.
-
-Báo cáo này **không** chọn cải tiến Pha 2. Việc chọn thuộc Tuần 7 và phải dựa trên baseline đo lại
-trên hệ thống nhận được, không phải trên baseline này.
+- Đường check-in có p50 khoảng 206–207 ms ở một client và CPU máy gần bão hòa khi tăng concurrency.
+  Throughput tăng ít hơn latency; đổi SQLite sang PostgreSQL không tạo khác biệt lớn ở workload này.
+  Đây là dấu hiệu cần khảo sát inference, chưa phải phép đo tách riêng chi phí model và DB.
+- Đường đọc đạt đỉnh ở concurrency 2. Tới concurrency 8, SQLite giảm 54,8% throughput so với đỉnh;
+  PostgreSQL giảm 10,9%. Kết quả chỉ mô tả cấu hình và dữ liệu đã đo.
+- Cần phân rã thời gian và đo tải hỗn hợp/tập profile lớn trước khi chọn cải tiến. Phương án và
+  cách đánh giá nằm tại [đề xuất Pha 2](phase-2-improvements.md).
 
 ## 6. Giới hạn của baseline
 
@@ -164,19 +89,127 @@ trên hệ thống nhận được, không phải trên baseline này.
   nó là mốc để so sánh trước/sau trong cùng điều kiện.
 - **Một lượt đo mỗi cấu hình.** Không có nhiều lần lặp nên chênh lệch dưới ~7% giữa hai backend ở
   `checkin` nên coi là nhiễu, không phải khác biệt thật.
-- **Kaggle có thể cấp máy khác nhau giữa các phiên.** Tuần 8 phải đọc lại `cpu_count` và `platform`
+- **Kaggle có thể cấp máy khác nhau giữa các phiên.** Mỗi lượt đo so sánh phải đọc lại `cpu_count` và `platform`
   trong metadata; khác cấu hình thì phải đo lại cả baseline.
 
-## 7. Chạy lại
+## 7. Chạy lại trên Kaggle CPU
 
-```bash
-# Trong Kaggle notebook (Accelerator: None, Internet: On) — xem benchmark-kaggle.md cho đủ 6 cell
-uv run python -m scripts.run_baseline \
-    --backend sqlite --port 8000 \
-    --requests 60 --history-requests 1000 --concurrency 1,2,4,8 \
-    --output-dir /kaggle/working/results --notes "kaggle-cpu sqlite phase1"
+Notebook đặt Accelerator **None**, Internet **On**. Kaggle notebook không chạy Docker nên runner
+thực hiện migration, seed, Uvicorn một worker và benchmark trực tiếp. Ảnh mẫu được lấy qua
+`scripts/sample_images.py`; không cần đưa ảnh mặt vào repo.
+
+Các cell dưới đây lấy mã nguồn từ nhánh `main` trên GitHub để đo bản hiện tại. Đây là lượt đo mới;
+số liệu lịch sử trong tài liệu vẫn thuộc commit `4affbd0`. Ghi lại commit thực tế và lưu metadata
+riêng; khi so sánh Phase 2, chạy cả bản gốc lẫn phương án trên cùng máy.
+
+### Cell 1 — lấy code và cài dependency
+
+```python
+!git clone --branch main https://github.com/thanhphu25/face-checkin-service.git /kaggle/working/app
+%cd /kaggle/working/app
+!git rev-parse HEAD
+!pip install --quiet uv
+!uv sync --python 3.12 --frozen --extra dev
 ```
 
-Giữ nguyên `--requests`, `--history-requests`, `--concurrency`, `--warmup` và loại instance khi đo
-lại ở Tuần 8. Mỗi lượt đo sinh CSV kèm metadata; thiếu metadata thì lượt đo đó không dùng để so sánh
-được.
+### Cell 2 — secret cho lượt chạy
+
+Giá trị dưới đây chỉ sống trong session notebook và không được commit về repo.
+
+```python
+import os, secrets
+
+os.environ["JWT_SECRET"] = secrets.token_urlsafe(32)
+os.environ["SEED_ADMIN_PASSWORD"] = secrets.token_urlsafe(24)
+os.environ["SEED_USER_PASSWORD"] = secrets.token_urlsafe(24)
+```
+
+### Cell 3 — baseline SQLite
+
+```python
+!uv run python -m scripts.run_baseline \
+    --backend sqlite \
+    --port 8000 \
+    --requests 60 --history-requests 1000 \
+    --concurrency 1,2,4,8 \
+    --output-dir /kaggle/working/results \
+    --notes "kaggle-cpu sqlite phase1"
+```
+
+### Cell 4 — PostgreSQL trong notebook
+
+Kaggle chạy dưới quyền root nên cài được PostgreSQL trực tiếp. Image Kaggle ngày 2026-09-22 cài
+cluster **14**, không phải 16, nên dùng `service postgresql start` để không phải gắn cứng số version;
+`pg_lsclusters` cho biết cluster thật nếu cần kiểm tra.
+
+Mật khẩu `bench-local-only` dưới đây là giá trị dùng một lần cho một PostgreSQL chỉ sống trong phiên
+notebook và chỉ nghe trên `127.0.0.1`. Không dùng lại nó ở bất kỳ môi trường nào khác.
+
+```python
+!apt-get -qq update && apt-get -qq install -y postgresql postgresql-contrib
+!service postgresql start
+!su - postgres -c "psql -c \"CREATE USER bench WITH PASSWORD 'bench-local-only';\""
+!su - postgres -c "psql -c 'CREATE DATABASE facecheckin_bench OWNER bench;'"
+```
+
+### Cell 5 — baseline PostgreSQL
+
+```python
+!uv run python -m scripts.run_baseline \
+    --backend postgresql \
+    --database-url postgresql+psycopg://bench:bench-local-only@127.0.0.1:5432/facecheckin_bench \
+    --port 8001 \
+    --requests 60 --history-requests 1000 \
+    --concurrency 1,2,4,8 \
+    --output-dir /kaggle/working/results \
+    --notes "kaggle-cpu postgresql phase1"
+```
+
+### Cell 6 — lấy kết quả về
+
+```python
+!ls -l /kaggle/working/results
+!cat /kaggle/working/results/baseline-sqlite.metadata.json
+```
+
+Tải bốn file về và commit vào `docs/benchmark/`:
+`baseline-sqlite.csv`, `baseline-sqlite.metadata.json`, `baseline-postgresql.csv`,
+`baseline-postgresql.metadata.json`.
+
+## 8. Đọc kết quả và so sánh trước/sau
+
+Mỗi dòng CSV là một scenario/mức concurrency. Throughput tính request/giây; p50/p95/p99 dùng
+nearest-rank. CPU máy là 0–100%, CPU server tính theo một core nên có thể vượt 100%.
+Harness bỏ warm-up, chờ khoảng lặng mặc định 2 giây; cửa sổ CPU dưới 0,5 giây được báo thiếu.
+
+Để đáp ứng yêu cầu đánh giá trên một cấu hình phần cứng trong [đề bài](2026.md):
+
+1. Dùng cùng phiên/cấu hình Kaggle; đối chiếu cpu_count/platform trong metadata.
+2. Giữ cùng model, ảnh, số profile, dữ liệu lịch sử, threshold, workload và tham số tải.
+3. Giữ số worker; nếu chính multi-worker là cải tiến, báo cả mốc một worker để đối chiếu.
+4. Lặp ít nhất ba lần sau warm-up, báo trung vị và khoảng dao động; thay một yếu tố mỗi thí nghiệm.
+5. Kiểm tra error_count và loại lỗi: baseline success-workload cần bằng 0; tải lỗi nghiệp vụ phải
+   được tách riêng. Lưu CSV, metadata, commit của cả hai bản và kiểm tra nghiệp vụ/auth/audit.
+
+Khi khác điều kiện đo, không quy đổi thành phần trăm cải thiện trực tiếp; chạy lại cả baseline.
+Nếu mở rộng sang tải hỗn hợp hoặc dữ liệu lớn, cả hai bản phải chạy trên workload mới đó.
+
+### Kiểm tra harness không cần Kaggle
+
+Lệnh này chạy được trên máy thường trong khoảng một phút và xác nhận toàn bộ đường đi trước khi tốn
+một phiên Kaggle. Số liệu thu được **không** dùng làm baseline.
+
+```bash
+export JWT_SECRET="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+export SEED_ADMIN_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+export SEED_USER_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+uv run python -m scripts.run_baseline \
+    --backend sqlite --port 8099 \
+    --requests 8 --history-requests 200 --concurrency 1,2 --warmup 2 \
+    --output-dir /tmp/benchmark-smoke --notes "smoke, not a baseline"
+```
+
+Chạy đúng thì mỗi dòng in ra có `errors=0`, và `/tmp/benchmark-smoke` có một CSV kèm một file
+metadata. Với tải nhỏ như trên, hai dòng `history` sẽ báo `cpu_sys=n/a cpu_srv=n/a` — đó là đúng,
+không phải lỗi: cửa sổ đo dưới 0,5 giây nên harness từ chối công bố số CPU thay vì công bố nhiễu.
+Lượt đo thật trên Kaggle dùng 1000 request nên luôn có đủ số CPU.

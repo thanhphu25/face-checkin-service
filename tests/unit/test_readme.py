@@ -19,7 +19,7 @@ def test_readme_covers_compose_auth_quality_and_phase_boundaries() -> None:
         "/api/v1/auth/login",
         "uv sync --python 3.12 --frozen --extra dev",
         "REQUIRE_POSTGRES_TESTS=1",
-        "Tuần 6",
+        "docs/benchmark-phase1.md",
         "docs/phase-2-improvements.md",
         "scripts/seed.py",
         "SEED_ADMIN_PASSWORD",

@@ -1,667 +1,197 @@
-# Kiến trúc hệ thống — Face Check-in Backend
+# Kiến trúc Face Check-in Service
 
-> Tài liệu kiến trúc Pha 1. Đi kèm [erd.md](erd.md) (mô hình dữ liệu), [ADR](adr/) (quyết định đã chấp nhận) và [ke-hoach-8-tuan.md](ke-hoach-8-tuan.md) (kế hoạch, API spec, RACI).
-> Đối tượng đọc: 3 thành viên trong nhóm, **và nhóm sẽ tiếp nhận hệ thống này ở Pha 2** — viết như thể người đọc không hỏi lại được ai.
+Tài liệu mô tả kiến trúc, các luồng xử lý chính và các quyết định đã chấp nhận của backend điểm
+danh bằng khuôn mặt. Hệ thống là một dịch vụ FastAPI, sử dụng PostgreSQL và InsightFace trên CPU.
 
-## 1. Ràng buộc từ đề bài → quyết định kiến trúc
-
-Mọi quyết định dưới đây đều truy ngược được về một dòng trong [2026.md](2026.md). Không có quyết định nào "vì thấy hay":
-
-| Yêu cầu đề bài | Quyết định kiến trúc | Kiểm chứng ở đâu |
-|---|---|---|
-| "Phân tầng rõ: API → Nghiệp vụ → Truy cập dữ liệu" | 3 tầng + thư mục tách bạch (mục 3, 4) | Cấu trúc thư mục, `import-linter` |
-| "Tầng nghiệp vụ **không import** framework web hay thư viện DB" | Service chỉ phụ thuộc ABC trong `app/domain/ports.py` (mục 5, 6) | `import-linter` contract 1 (mục 14) |
-| "Truy cập dữ liệu qua Repository/DAO, bên dưới dùng ORM" | Repository ABC + implementation SQLAlchemy (mục 6) | `app/repositories/` |
-| "Xác thực qua middleware/filter/interceptor, **không viết lặp** trong từng endpoint" | `AuthenticationMiddleware` xác minh JWT/user; dependency đọc principal (mục 8) | Không handler nào tự decode JWT |
-| "Ít nhất 1 GET và 1 POST cần xác thực" | `GET /auth/me`, `GET /checkins`, `POST /face-profiles` (mục 8) | Swagger hiện ổ khóa |
-| "REST API, JSON, có POST/GET/DELETE" | Router `/api/v1/*` (mục 7) | OpenAPI tự sinh |
-| "Có tài liệu API (OpenAPI/Swagger)" | FastAPI tự sinh tại `/docs` + xuất `openapi.json` tĩnh | Checklist bàn giao Tuần 6 |
-| "Hỗ trợ đóng gói Docker" | Dockerfile multi-stage + docker-compose (mục 12) | Tuần 5 |
-| "Kiểm thử tải trên Kaggle CPU" | Suy luận model chạy CPU, không phụ thuộc GPU (mục 9) | Tuần 6 |
-
----
-
-## 2. Tổng quan một câu
-
-> Một FastAPI service phân 3 tầng, trong đó **tầng nghiệp vụ là Python thuần** — nó không biết HTTP tồn tại, cũng không biết dữ liệu nằm ở Postgres hay SQLite — nhờ đó so khớp khuôn mặt và phân quyền đều test được mà không cần dựng DB hay web server.
-
----
-
-## 3. Sơ đồ tầng & quy tắc phụ thuộc
+## Kiến trúc tổng quát
 
 ```mermaid
 flowchart TB
-    subgraph API["API Layer — app/api, app/schemas (biết framework)"]
-        R[Routers /api/v1]
-        S[Pydantic schemas]
-        D[deps.py — DI wiring]
-        EH[Exception handlers]
-    end
-
-    subgraph SVC["Service Layer — app/services (Python thuần)"]
-        US[UserService]
-        FS[FaceProfileService]
-        CS[CheckInService]
-    end
-
-    subgraph DOM["Domain — app/domain (Python thuần, không phụ thuộc gì)"]
-        E[entities.py]
-        P[ports.py — các ABC]
-        ERR[errors.py]
-    end
-
-    subgraph ADP["Adapters (hiện thực hóa ports)"]
-        REPO[app/repositories — SQLAlchemy]
-        ML[app/ml — InsightFace]
-        SEC[app/core/security.py — hash mật khẩu]
-    end
-
-    DB[(PostgreSQL / SQLite)]
-
-    API -->|gọi| SVC
-    SVC -->|chỉ thấy ABC| DOM
-    ADP -->|implements| DOM
-    API -.->|lắp adapter vào service lúc khởi tạo request| ADP
-    REPO --> DB
-
-    style DOM fill:#e8f4ea,stroke:#2d6a4f
-    style SVC fill:#e8f0fa,stroke:#1d4e89
+    Client[Thiết bị / User / Admin] --> Auth[Middleware xác thực JWT]
+    Auth --> API[API: HTTP, upload, schema]
+    API --> Service[Service: nghiệp vụ và phân quyền]
+    Service -.-> Domain[Domain: entity và hợp đồng]
+    Service --> Repo[SQLAlchemy Repository]
+    Service --> ML[InsightFace CPU]
+    Repo --> DB[(PostgreSQL)]
+    Repo -.-> Domain
+    ML -.-> Domain
 ```
 
-### Quy tắc phụ thuộc (bảng này là luật, không phải gợi ý)
+Mũi tên liền thể hiện luồng gọi khi chạy, nét đứt thể hiện phụ thuộc vào hợp đồng Domain.
+Middleware tải user bằng session đọc riêng và đóng trước khi endpoint xử lý nghiệp vụ.
 
-| Tầng | ĐƯỢC import | CẤM import |
-|---|---|---|
-| `app/domain` | stdlib, `numpy` | Tất cả phần còn lại của `app`, mọi thư viện web/DB |
-| `app/services` | `app.domain`, stdlib, `numpy` | `fastapi`, `starlette`, `sqlalchemy`, `pydantic`, `app.api`, `app.models`, `app.repositories`, `app.schemas` |
-| `app/repositories` | `app.domain`, `app.models`, `sqlalchemy` | `app.api`, `app.services`, `fastapi` |
-| `app/ml` | `app.domain`, `numpy`, `insightface`/`onnxruntime` | `app.api`, `app.services`, `sqlalchemy` |
-| `app/api` | Tất cả (đây là **composition root** — nơi duy nhất được lắp mọi thứ lại) | — |
-
-**Mũi tên phụ thuộc luôn chỉ vào trong.** `app/domain` là lõi không phụ thuộc ai; adapter ở ngoài cùng phụ thuộc vào lõi, không bao giờ ngược lại. Đây chính là Dependency Inversion mà đề bài đòi hỏi.
-
-### Import qua `__init__.py`
-
-`app/repositories/__init__.py` hiện re-export các adapter SQLAlchemy để `api/deps.py` sử dụng.
-Service và Domain không được import package này, kể cả gián tiếp qua `__init__.py` của package khác.
-`import-linter` kiểm tra ranh giới này trong CI; các interface dùng chung nằm tại `domain/ports.py`.
-
----
-
-## 4. Cấu trúc thư mục
-
-```
-app/
-├── main.py                  # tạo app, gắn auth middleware + router + error handler
-├── core/
-│   ├── config.py            # pydantic-settings, đọc .env
-│   └── security.py          # hash/verify mật khẩu, encode/decode JWT
-├── domain/                  # ❤️ LÕI — Python thuần, không phụ thuộc gì
-│   ├── entities.py          # User, FaceProfile, CheckInRecord (dataclass)
-│   ├── embeddings.py        # kiểm tra và chuẩn hóa L2 embedding dùng chung
-│   ├── ports.py             # các ABC: *Repository, FaceEmbedder, PasswordHasher
-│   └── errors.py            # EmailAlreadyExists, NoFaceDetected, ...
-├── services/                # nghiệp vụ, Python thuần
-│   ├── user_service.py
-│   ├── face_profile_service.py
-│   ├── check_in_service.py
-│   └── authorization.py    # quyền admin/chủ sở hữu và scope dữ liệu
-├── models/                  # SQLAlchemy ORM models + Base + naming convention
-├── repositories/            # adapter: implements *Repository bằng SQLAlchemy
-│   ├── __init__.py          # re-export adapter cho composition root
-│   ├── user_repository.py
-│   ├── face_profile_repository.py
-│   ├── check_in_repository.py
-│   └── mappers.py           # ánh xạ ORM → domain, chuẩn hóa thời gian UTC
-├── ml/                      # adapter: implements FaceEmbedder
-│   └── insightface_embedder.py
-├── schemas/                 # Pydantic DTO cho request/response
-└── api/
-    ├── authentication.py    # JWT backend, principal và lỗi AuthenticationMiddleware
-    ├── deps.py              # DI: get_session, đọc principal, factory các service
-    ├── errors.py            # map domain error → HTTP status
-    ├── uploads.py           # đọc và kiểm tra JPEG/PNG
-    └── v1/
-        ├── auth.py
-        ├── users.py
-        ├── face_profiles.py
-        ├── check_ins.py
-        └── router.py        # ghép các router dưới /api/v1
-
-alembic/                     # migration
-scripts/                     # seed data, manual_test_repo.py, benchmark
-tests/
-├── unit/                    # test service với port giả — không DB, không HTTP
-├── integration/             # test repository với DB thật
-└── api/                     # test endpoint với TestClient
-```
-
-**So với danh sách thư mục chốt ở Tuần 1**, tài liệu này bổ sung 3 thư mục, mỗi cái có lý do bắt buộc:
-
-| Thư mục thêm | Vì sao không thể thiếu |
+| Thành phần | Trách nhiệm |
 |---|---|
-| `app/domain/` | Cả `services` và `repositories` đều cần dùng chung entity + ABC. Nếu để ABC trong `repositories/` thì Service phải import `repositories` → dễ kéo theo SQLAlchemy (mục 3). `domain/` là nơi duy nhất trung lập |
-| `app/ml/` | InsightFace/onnxruntime là dependency nặng. Cô lập vào một thư mục để Pha 2 thay bằng bản ONNX quantized chỉ cần sửa 1 file |
-| `app/core/` | Config và primitive bảo mật (hash, JWT) không thuộc tầng nào trong 3 tầng — chúng là hạ tầng dùng chung |
+| API | Nhận yêu cầu, kiểm tra đầu vào và chuyển lỗi nghiệp vụ thành phản hồi HTTP |
+| Service | Điều phối nghiệp vụ, kiểm tra quyền sở hữu và so khớp khuôn mặt |
+| Domain | Định nghĩa dữ liệu, lỗi nghiệp vụ và hợp đồng truy cập dữ liệu, nhận diện |
+| Repository | Truy cập database bằng SQLAlchemy, chuyển đổi dữ liệu ORM và domain |
+| ML adapter | Phát hiện mặt và sinh embedding bằng InsightFace |
 
----
+Service và Domain không phụ thuộc framework web hay thư viện database. Dependency tại API lắp
+adapter vào Service và quản lý tài nguyên; import-linter kiểm tra ranh giới tầng trong CI.
 
-## 5. Trách nhiệm từng tầng
+## Các luồng xử lý chính
 
-### 5.1. Domain (`app/domain/`) — lõi
+Các endpoint nghiệp vụ dưới đây có tiền tố /api/v1. User thường thao tác trên dữ liệu của mình;
+admin có quyền quản trị theo [đặc tả API](api-spec.md).
 
-Chứa **dữ liệu, hợp đồng và quy tắc thuần Python dùng chung**; không điều phối use case.
-`embeddings.py` dùng chung phép kiểm tra và chuẩn hóa L2 cho Service và adapter ML.
-
-```python
-# entities.py — không kế thừa gì, không decorator của framework
-@dataclass(frozen=True, slots=True)
-class FaceProfile:
-    id: int | None
-    user_id: int
-    embedding: np.ndarray  # đã L2-normalize, float32
-    model_name: str
-    created_at: datetime
-
-
-# ports.py — hợp đồng mà tầng ngoài phải thỏa mãn
-class FaceProfileRepository(ABC):
-    @abstractmethod
-    def add(self, profile: FaceProfile) -> FaceProfile: ...
-    @abstractmethod
-    def list_all(self) -> list[FaceProfile]: ...
-    @abstractmethod
-    def get(self, profile_id: int) -> FaceProfile | None: ...
-    @abstractmethod
-    def delete(self, profile_id: int) -> None: ...
-
-
-class FaceEmbedder(ABC):
-    @abstractmethod
-    def embed(self, image_bytes: bytes) -> np.ndarray:
-        """Trả vector float32 đã L2-normalize. Raise NoFaceDetected nếu không thấy mặt."""
-```
-
-> **numpy có được phép ở đây không?** Có. Đề bài cấm "framework web" và "thư viện DB" — numpy không thuộc cả hai, nó là thư viện tính toán thuần. Nếu muốn tuyệt đối sạch có thể dùng `tuple[float, ...]`, nhưng cái giá là mất hiệu năng vector hóa ở đúng chỗ nóng nhất. Quyết định này nên được ghi thành 1 ADR để nhóm nhận hệ thống không hiểu lầm.
-
-### 5.2. Service (`app/services/`) — nghiệp vụ
-
-Nhận port qua constructor, **không tự tạo ra thứ gì có kết nối ra ngoài**:
-
-```python
-class FaceProfileService:
-    def __init__(
-        self,
-        profiles: FaceProfileRepository,  # ABC, không phải class SQLAlchemy
-        users: UserRepository,
-        embedder: FaceEmbedder,  # ABC, không phải InsightFace
-        clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
-    ) -> None: ...
-
-    def register_face(self, user_id: int, image: bytes) -> FaceProfile:
-        if self._users.get(user_id) is None:
-            raise UserNotFound(user_id)
-        vector = self._embedder.embed(image)  # có thể raise NoFaceDetected
-        return self._profiles.add(
-            FaceProfile(
-                id=None,
-                user_id=user_id,
-                embedding=vector,
-                model_name=self._embedder.model_name,
-                created_at=self._clock(),
-            )
-        )
-```
-
-Nhờ vậy unit test chạy **không cần DB, không cần model AI, không cần HTTP** — truyền vào 2 repository giả và 1 embedder trả vector cố định là đủ.
-
-### 5.3. Repository (`app/repositories/`) — adapter dữ liệu
-
-Nơi **duy nhất** được phép chuyển đổi ORM ↔ domain:
-
-```python
-class SqlAlchemyFaceProfileRepository(FaceProfileRepository):
-    def __init__(self, session: Session) -> None:
-        self._session = session
-
-    def add(self, profile: FaceProfile) -> FaceProfile:
-        row = FaceProfileORM(
-            user_id=profile.user_id,
-            embedding=profile.embedding.astype(np.float32).tobytes(),
-            embedding_dim=profile.embedding.shape[0],
-            model_name=profile.model_name,
-            created_at=profile.created_at,
-        )
-        self._session.add(row)
-        self._session.commit()
-        self._session.refresh(row)
-        return to_domain(row)
-```
-
-**Không bao giờ trả `FaceProfileORM` ra ngoài.** Object ORM gắn với session — thoát ra khỏi repository là mở đường cho lazy-load lỗi, `DetachedInstanceError`, và làm hỏng phân tầng.
-
-### 5.4. API (`app/api/`, `app/schemas/`) — vỏ ngoài
-
-Chỉ làm 4 việc: xác thực → chuyển request thành kiểu domain → gọi service → chuyển kết quả/lỗi thành HTTP. **Không có `if` nghiệp vụ nào trong router.**
-
-```python
-@router.post("", response_model=FaceProfileRead, status_code=201)
-def register_face(
-    file: UploadFile,
-    current: User = Depends(get_current_user),
-    service: FaceProfileService = Depends(get_face_profile_service),
-):
-    profile = service.register_face(current.id, file.file.read())
-    return FaceProfileRead.model_validate(profile)
-```
-
----
-
-## 6. Ports & Adapters — bảng tra cứu
-
-| Port (ABC trong `domain/ports.py`) | Adapter Pha 1 | Adapter giả khi test | Đường thay ở Pha 2 |
-|---|---|---|---|
-| `UserRepository` | `repositories/user_repository.py` | dict trong bộ nhớ | cache nếu có số đo chứng minh lợi ích |
-| `FaceProfileRepository` | `repositories/face_profile_repository.py` | dict trong bộ nhớ | cache embedding / ANN index |
-| `CheckInRepository` | `repositories/check_in_repository.py` | list trong bộ nhớ | async driver, ghi theo lô |
-| `FaceEmbedder` | `ml/insightface_embedder.py` | trả vector cố định | ONNX + quantization int8 |
-| `PasswordHasher` | `core/security.py` (Argon2id, xác minh PBKDF2 cũ) | hash giả, nhanh | — |
-
-Cột cuối là lý do quan trọng nhất của toàn bộ thiết kế này: **mọi cải tiến Pha 2 đều thay được một adapter mà không đụng vào tầng Service.** Cột này cũng trả lời trước câu hỏi giảng viên hay hỏi: *"kiến trúc của em hỗ trợ cải tiến như thế nào?"*
-
-> Mẹo test: adapter giả nên viết tay (~15 dòng dict) thay vì `unittest.mock.Mock`. Mock sẽ *im lặng chấp nhận* cả những lời gọi sai chữ ký, còn class giả kế thừa ABC thì báo lỗi ngay — test bắt được nhiều bug hơn.
-
----
-
-## 7. Luồng xử lý chính
-
-### 7.1. Đăng nhập — `POST /api/v1/auth/login`
+### Đăng nhập
 
 ```mermaid
-sequenceDiagram
-    participant C as Client
-    participant R as auth router
-    participant S as UserService
-    participant Repo as UserRepository
-    participant Sec as core/security
-
-    C->>R: email + password (form)
-    R->>S: authenticate(email, password)
-    S->>Repo: get_by_email(email.lower())
-    Repo-->>S: User | None
-    S->>Sec: verify(password, user.hashed_password)
-    alt sai hoặc không tồn tại
-        S-->>R: raise InvalidCredentials
-        R-->>C: 401
-    else đúng
-        S-->>R: User
-        R->>Sec: create_access_token(sub=user.id, role=user.role)
-        R-->>C: 200 {access_token, token_type: bearer}
-    end
+flowchart LR
+    A[Email và mật khẩu] --> B[Tải user theo email]
+    B --> C{Mật khẩu hợp lệ?}
+    C -->|Có| D[200: phát JWT]
+    C -->|Không| E[401: lỗi đăng nhập chung]
 ```
 
-**Chi tiết dễ bỏ sót:** khi email không tồn tại, vẫn nên chạy một phép verify giả rồi mới trả 401 — nếu không, thời gian phản hồi giữa "email sai" và "mật khẩu sai" khác nhau rõ rệt, cho phép dò email có tồn tại hay không. Và luôn trả **cùng một thông điệp lỗi** cho cả hai trường hợp.
+API nhận email/mật khẩu, Service chuẩn hóa email, tải user và kiểm tra password hash. Credential
+hợp lệ trả access token; email không tồn tại và mật khẩu sai cùng trả 401 với thông điệp chung.
+Ở request tiếp theo, middleware xác minh JWT và tải lại user; dependency sử dụng principal đó,
+không decode token hoặc truy vấn user lần nữa.
 
-**Vì sao tạo JWT nằm ở router chứ không ở Service?** Token là chi tiết của lớp vận chuyển HTTP — một client gRPC hay CLI sẽ cần cơ chế khác. Service chỉ trả lời câu hỏi nghiệp vụ *"cặp email/mật khẩu này có hợp lệ không"*. Đây là câu hỏi bảo vệ đồ án rất dễ bị hỏi, nên nhớ lý do.
-
-### 7.2. Đăng ký khuôn mặt — `POST /api/v1/face-profiles` 🔒
+### Đăng ký khuôn mặt
 
 ```mermaid
-sequenceDiagram
-    participant C as Client
-    participant MW as AuthenticationMiddleware
-    participant Dep as get_current_user
-    participant R as face_profiles router
-    participant S as FaceProfileService
-    participant E as FaceEmbedder
-    participant Repo as FaceProfileRepository
-
-    C->>MW: Bearer token + ảnh (multipart)
-    MW->>MW: Xác minh JWT, lookup user, đóng session đọc
-    MW->>Dep: request.user đã xác thực
-    Dep-->>R: Domain User từ principal
-    R->>S: register_face(user.id, image_bytes)
-    S->>E: embed(image_bytes)
-    alt không thấy mặt
-        E-->>S: raise NoFaceDetected
-        S-->>R: (lan truyền)
-        R-->>C: 422
-    else ok
-        E-->>S: vector float32 đã normalize
-        S->>Repo: add(FaceProfile(...))
-        Repo-->>S: FaceProfile (có id)
-        S-->>R: FaceProfile
-        R-->>C: 201 (KHÔNG trả embedding ra)
-    end
+flowchart LR
+    A[JWT và ảnh] --> B[Xác thực user, kiểm tra upload]
+    B --> C[InsightFace sinh embedding]
+    C --> D[Lưu profile cho user hiện hành]
+    D --> E[Commit, trả 201]
 ```
 
-Kiểm tra ở tầng API trước khi chạm tới model: giới hạn dung lượng file (`MAX_UPLOAD_MB`), chặn content-type ngoài `image/jpeg|png`. Suy luận model là thao tác tốn nhất trong toàn hệ thống — đừng để một file 200 MB đi tới được đó.
+Sau xác thực, API kiểm tra upload JPEG/PNG theo giới hạn cấu hình. Service kiểm tra user còn tồn
+tại, gọi InsightFace và lưu vector đã chuẩn hóa cùng model/dimension. Profile luôn thuộc user
+đang đăng nhập; response 201 không chứa vector. Không có mặt, nhiều mặt hoặc lỗi ảnh/embedding
+đều từ chối đăng ký và không tạo profile.
 
-### 7.3. Check-in — `POST /api/v1/checkins` (luồng lõi)
+### Điểm danh
 
 ```mermaid
-sequenceDiagram
-    participant C as Client
-    participant R as checkins router
-    participant S as CheckInService
-    participant E as FaceEmbedder
-    participant FP as FaceProfileRepository
-    participant CR as CheckInRepository
-
-    C->>R: ảnh khuôn mặt
-    R->>S: check_in(image_bytes)
-    S->>E: embed(image)
-    alt không thấy mặt
-        E-->>S: raise NoFaceDetected
-        S->>CR: add(status="no_face", score=NULL)
-        S-->>R: kết quả no_face
-        R-->>C: 422
-    else có vector
-        S->>FP: list_all()
-        FP-->>S: N profile
-        Note over S: cosine = dot(query, candidates.T)<br/>vì mọi vector đều đã normalize<br/>→ điểm nghẽn O(N) của Pha 2
-        alt điểm cao nhất ≥ ngưỡng
-            S->>CR: add(status="success", user_id, score, threshold)
-            S-->>R: CheckInResult(success)
-            R-->>C: 201 {user, similarity_score}
-        else dưới ngưỡng
-            S->>CR: add(status="unmatched", user_id=NULL, score)
-            S-->>R: CheckInResult(unmatched)
-            R-->>C: 404 {message, best_score}
-        end
-    end
+flowchart TD
+    A[Ảnh từ thiết bị] --> B[Kiểm tra upload và phát hiện mặt]
+    B -->|Ảnh hỏng, nhiều mặt hoặc lỗi ML| C[400 / 422, không tạo record]
+    B -->|Không có mặt| D[Lưu no_face, commit, trả 422]
+    B -->|Đúng một mặt| E[Sinh embedding và so khớp profile]
+    E --> F{Có profile đạt ngưỡng?}
+    F -->|Có| G[Lưu success, commit, trả 201]
+    F -->|Không| H[Lưu unmatched, commit, trả 404]
 ```
 
-**Cả 3 nhánh đều ghi bản ghi check-in**, kể cả thất bại — lịch sử thất bại chính là dữ liệu để hiệu chỉnh ngưỡng ở Tuần 3–4 và để so sánh ở Pha 2.
+Endpoint này công khai, không yêu cầu JWT. Ảnh có đúng một mặt được chuyển thành embedding;
+Service tải profile, lọc cùng model/dimension rồi chọn cosine score cao nhất. Ngưỡng so khớp được
+lưu cùng record để giải thích lịch sử khi cấu hình thay đổi.
 
-### 7.4. Xem lịch sử — `GET /api/v1/checkins` 🔒
+Success trả danh tính khớp; unmatched/no_face trả record_id để tra cứu lần điểm danh thất bại.
+Không có mặt là kết quả nghiệp vụ được lưu; ảnh hỏng, nhiều mặt hoặc lỗi embedding không tạo record.
 
-Quy tắc phân quyền nằm ở **Service**, không phải ở router:
+Dependency commit cả lỗi domain để giữ audit của unmatched/no_face trước khi trả lỗi HTTP;
+lỗi hệ thống rollback. Nếu client chủ động gửi Bearer token không hợp lệ, middleware trả 401
+trước khi đi vào luồng điểm danh, dù endpoint công khai.
 
-```python
-def list_checkins(self, requester: User, user_id: int | None, ...) -> list[CheckInRecord]:
-    if requester.role != Role.ADMIN:
-        user_id = requester.id      # user thường: ép về chính mình, bỏ qua tham số truyền vào
-    return self._checkins.list(user_id=user_id, start=start, end=end, limit=limit)
+### Tra cứu và quản lý dữ liệu
+
+```mermaid
+flowchart LR
+    A[JWT và bộ lọc] --> B[Middleware xác thực user]
+    B --> C[Service giới hạn dữ liệu theo quyền]
+    C --> D[Repository truy vấn lịch sử]
+    D --> E[200: danh sách kết quả]
 ```
 
-Nếu viết `if role == admin` trong router thì mỗi endpoint mới lại phải nhớ lặp lại — đúng thứ đề bài cấm. Đặt ở Service thì unit test phủ được mà không cần dựng HTTP.
-
----
+Middleware xác thực user; Service ép phạm vi truy vấn của user thường về chính họ, kể cả khi
+truyền bộ lọc user khác. Admin được xem và lọc toàn hệ thống. History hỗ trợ bộ lọc thời gian,
+limit và thứ tự mới nhất trước; GET chi tiết kiểm tra quyền sở hữu và trả 403 nếu không đủ quyền.
 
-## 8. Xác thực & phân quyền
+Khi xóa, admin quản lý user/check-in; admin hoặc chủ sở hữu được xóa profile. Repository thực hiện
+thay đổi trong transaction của request. Xóa user kéo theo profile nhưng vẫn giữ lịch sử điểm
+danh, các liên kết tới user/profile đã xóa được đặt rỗng.
 
-### Thiết kế
+## Quyết định thiết kế
 
-Ứng dụng dùng `AuthenticationMiddleware` có sẵn của Starlette, đăng ký trong `main.py`:
+### Database
 
-```python
-app.add_middleware(
-    AuthenticationMiddleware,
-    backend=JWTAuthenticationBackend(get_session_factory),
-    on_error=authentication_error_response,
-)
-```
+**Lựa chọn:** PostgreSQL cho triển khai thực tế, SQLite cho local và test nhanh. Alembic quản lý
+schema. Session nghiệp vụ theo request; Repository chỉ flush, dependency commit hoặc rollback.
+Lỗi domain vẫn commit để giữ lịch sử điểm danh thất bại; lỗi hệ thống rollback.
 
-`api/authentication.py` định nghĩa backend và principal:
+**Lý do và đánh đổi:** Repository tách database khỏi nghiệp vụ nhưng phải kiểm tra mapping và
+ràng buộc trên cả hai backend. Thời gian chuẩn hóa UTC; lịch sử được giữ khi xóa user/profile,
+các liên kết tương ứng thành rỗng. Hồ sơ khuôn mặt bị xóa theo user.
 
-1. Không có Bearer credential: để request tiếp tục với principal chưa đăng nhập.
-2. Có Bearer token: kiểm tra JWT bằng `core/security.py`, lấy user hiện hành qua Repository.
-3. Gắn `AuthenticatedUser(domain_user)` vào `request.user`; role hiện hành trong DB quyết định quyền.
-4. Token lỗi/hết hạn hoặc user đã xóa: trả JSON `401`, header `WWW-Authenticate: Bearer`.
+**Khi cần xem lại:** nghiệp vụ ghi nhiều bảng cần tính nguyên tử thì đánh giá Unit of Work và
+ranh giới transaction tại use case; đổi database phải kiểm tra lại migration và ràng buộc.
 
-`api/deps.py` chỉ đọc kết quả middleware và kiểm tra quyền:
+### Auth
 
-```python
-def get_current_user(request: Request, _token: TokenDependency) -> User:
-    principal = request.user
-    if not isinstance(principal, AuthenticatedUser):
-        raise InvalidToken()
-    return principal.user
-```
+**Lựa chọn:** middleware xác minh JWT và tải user hiện hành một lần mỗi request; role trong DB
+quyết định quyền. Service kiểm tra ownership, OAuth2PasswordBearer khai báo bảo mật cho Swagger.
+Mật khẩu mới dùng Argon2id; PBKDF2 chỉ để xác minh dữ liệu cũ.
 
-`TokenDependency` dùng `OAuth2PasswordBearer` để yêu cầu bearer header và khai báo OAuth2 trên
-Swagger. Nó không decode JWT hay truy vấn DB. Endpoint dùng `CurrentUserDependency` hoặc
-`AdminUserDependency` trong tham số; không gắn auth chung cho router có cả route công khai/bảo vệ.
-JWT và user chỉ được xác minh một lần/request tại middleware. Role/ownership nghiệp vụ vẫn nằm
-trong Service/helper thuần Python.
+**Lý do và đánh đổi:** xác thực tập trung tránh xử lý lặp. Session xác thực tách khỏi session nghiệp
+vụ; mỗi request có token cần truy vấn user nên việc đổi role hoặc xóa user có hiệu lực ngay ở lần
+gọi tiếp theo. Thiếu token vẫn gọi được API công khai; Bearer token sai bị trả 401 trên mọi route.
 
-### Bản đồ quyền
+**Khi cần xem lại:** cần refresh token, logout/revoke tức thời hoặc SSO. Hiện chưa có cơ chế thu hồi
+token riêng; bỏ hỗ trợ PBKDF2 sau khi chuyển hết hash cũ.
 
-| Endpoint | Ai gọi được | Ghi chú |
-|---|---|---|
-| `POST /auth/login` | công khai | |
-| `GET /auth/me` 🔒 | mọi user đã đăng nhập | **endpoint GET có auth #1 theo đề bài** |
-| `POST /users` 🔒 | chỉ admin | |
-| `GET /users/{id}` 🔒 | admin, hoặc chính chủ | kiểm tra trong Service |
-| `POST /face-profiles` 🔒 | mọi user đã đăng nhập | **endpoint POST có auth theo đề bài** |
-| `DELETE /face-profiles/{id}` 🔒 | admin, hoặc chủ hồ sơ | kiểm tra trong Service |
-| `POST /checkins` | công khai | đây là "cái máy chấm công" ở cửa — người check-in chưa đăng nhập |
-| `GET /checkins` 🔒 | user thường chỉ thấy của mình; admin thấy tất cả | **endpoint GET có auth #2** |
-| `DELETE /checkins/{id}` 🔒 | chỉ admin | |
+### Embedding
 
-### Session xác thực và endpoint công khai
+**Lựa chọn:** InsightFace buffalo_s chạy CPU, model được tạo khi cần và tái sử dụng trong process.
+Embedding float32, L2-normalized, lưu dạng bytes kèm model và dimension. Service chỉ so khớp hồ sơ
+cùng model/dimension, chọn cosine score cao nhất đạt ngưỡng mặc định 0.40; lưu ngưỡng cùng record.
 
-Backend chạy xác minh token và lookup SQLAlchemy đồng bộ trong threadpool. Session đọc được
-khởi tạo, sử dụng và đóng trong cùng worker thread, trước khi gọi endpoint; chỉ domain entity
-được truyền qua request. Session ghi dữ liệu của endpoint được dependency quản lý riêng như cũ.
+**Lý do và đánh đổi:** phù hợp máy dev/Kaggle, lưu trữ gọn và giữ matching độc lập với DB. Tuy nhiên,
+chi phí tải và quét hồ sơ tăng theo dữ liệu; ngưỡng hiện tại chưa được đánh giá trên tập ảnh thực tế.
 
-Middleware không giữ danh sách đường dẫn ngoại lệ. Request công khai không có Bearer credential
-không lookup user; endpoint được bảo vệ yêu cầu token qua dependency. Nếu client gửi Bearer token
-lỗi tới endpoint công khai, middleware vẫn trả `401`; client cần bỏ token lỗi để gọi ẩn danh.
+**Khi cần xem lại:** tốc độ hoặc độ chính xác không đạt yêu cầu. Đổi model cần tạo lại embedding
+hoặc tách hồ sơ theo model; không trộn vector khác model dù cùng dimension.
 
-Cách này sử dụng middleware xác thực trực tiếp của framework theo đề bài. Không xác thực lại
-ở dependency hoặc handler. Test `test_authentication_middleware.py` đếm decode/lookup,
-kiểm tra role hiện hành, token lỗi/user bị xóa, route công khai và giữ thread DB ngoài event loop.
+### Infrastructure
 
----
+**Lựa chọn:** Compose gồm app, migrate và postgres; app chờ migration thành công. Database và
+model cache có volume riêng. Chưa dùng Redis, pgvector, FAISS hoặc async database.
 
-## 9. Thuật toán so khớp khuôn mặt
+Dockerfile dùng Python 3.12 slim qua hai giai đoạn. `builder` cài dependency từ `uv.lock` bằng
+`uv sync --frozen` và cài ứng dụng vào `.venv`; tách bước copy dependency/code để tận dụng cache.
+`runtime` nhận môi trường đã cài, code và Alembic, thêm thư viện hệ thống cho xử lý ảnh, rồi chạy
+Uvicorn một worker bằng user `app` UID 10001. Ảnh mẫu và dữ liệu phụ được loại khỏi image cuối;
+seed/test chạy từ môi trường Python/uv trên host.
 
-### Công thức
+Compose truyền cấu hình từ `.env` qua các biến được khai báo, tạo connection URL dùng hostname
+`postgres` trong mạng container. Host truy cập qua các cổng publish. Volume `postgres_data`
+mount vào `/var/lib/postgresql/data`, còn `insightface_models` mount vào `/home/app/.insightface`;
+thay container vẫn giữ dữ liệu nếu chưa xóa volume.
 
-Mọi embedding đã được L2-normalize khi ghi (xem [erd.md](erd.md) mục 3), nên:
+Model được tải khi dependency embedder khởi tạo và chưa có cache. Cache host dùng khi seed tách
+khỏi cache container; mỗi tiến trình giữ một bản model trong RAM. Dependency dùng chung khiến
+GET/DELETE face-profile/check-in cũng có thể kích hoạt tải/nạp model. Health hiện chỉ kiểm tra
+handler HTTP; kiểm tra model và luồng nhận diện là bước xác minh riêng sau khi dựng stack.
 
-```
-cosine_similarity(a, b) = dot(a, b)        vì ||a|| = ||b|| = 1
-```
+**Lý do và đánh đổi:** giữ triển khai đơn giản, tránh chi phí cache/index khi chưa có số đo chứng
+minh nhu cầu. Migration chạy một lần trước app để tránh các replica cùng nâng schema.
+Khóa dependency giúp tái lập package; build hai giai đoạn và loại dữ liệu phụ giảm thành phần
+trong image chạy. Base image hiện chưa khóa theo digest, nên không bảo đảm image giống hệt ở mọi
+lần build. Tải model lúc dùng giúp tách model khỏi image nhưng tạo độ trễ lần đầu và yêu cầu
+Internet khi cache trống. Cách build, chuẩn bị model và xử lý lỗi nằm ở [hướng dẫn vận hành](running.md#4-chạy-từ-máy-sạch-bằng-docker-compose).
 
-```python
-# app/services/checkin_service.py
-candidates = self._profiles.list_all()  # N profile
-matrix = np.stack([p.embedding for p in candidates])  # (N, 512)
-scores = matrix @ query  # (N,) — một phép nhân ma trận
-best = int(np.argmax(scores))
-if scores[best] >= self._threshold:
-    ...  # success
-```
+**Khi cần xem lại:** có nhu cầu mở rộng hoặc phép đo chứng minh lợi ích. Hạ tầng mới cần đi cùng
+kiểm thử hành vi lỗi, tính nhất quán và benchmark trước/sau.
 
-Viết dưới dạng **một phép nhân ma trận** thay vì vòng `for` gọi `np.dot` từng cái — chênh lệch hàng chục lần, và đây đúng là đoạn code sẽ bị soi ở Pha 2.
+### Benchmark
 
-### Ngưỡng similarity
+**Lựa chọn:** đo trên Kaggle CPU, Uvicorn một worker ngoài Compose; tách tải điểm danh và đọc lịch
+sử, đo cả SQLite/PostgreSQL. Percentile dùng nearest-rank; warm-up tách khỏi số liệu và có khoảng
+lặng trước khi đo CPU. Kết quả lưu CSV kèm metadata.
 
-| Điểm | Ý nghĩa |
-|---|---|
-| Giá trị khởi điểm | **0.35–0.45** cho embedding họ ArcFace/InsightFace |
-| Cách chốt | **Phải tự hiệu chỉnh**: thu ~20 cặp ảnh cùng người + ~20 cặp khác người của chính nhóm, vẽ phân bố điểm, chọn ngưỡng tách hai cụm |
-| Nơi cấu hình | Biến môi trường `SIMILARITY_THRESHOLD`, **không hard-code** |
-| Vì sao lưu vào DB | Ngưỡng đổi theo thời gian; không lưu thì lịch sử check-in cũ mất ý nghĩa (xem erd.md mục 4) |
+**Lý do và đánh đổi:** Kaggle notebook không chạy Docker; kết quả chỉ đại diện cấu hình đã đo.
+Baseline có một profile nên chưa phản ánh dữ liệu lớn và không chứng minh độ chính xác nhận diện.
 
-Đừng tin con số mặc định của thư viện: ngưỡng phụ thuộc model, độ phân giải ảnh và chất lượng camera. Hiệu chỉnh ở **Tuần 3**, ngay khi embedding thật chạy end-to-end, đừng để tới Tuần 6.
+**Khi cần xem lại:** đổi phần cứng, dữ liệu, workload hoặc tham số phải đo lại baseline tương ứng.
+CI kiểm tra unit/API/integration, phân tầng, Docker và Compose; test model thật chạy riêng.
 
-### Điểm nghẽn đã biết trước (nguyên liệu cho Pha 2)
-
-| Giai đoạn | Chi phí ước tính | Tăng theo |
-|---|---|---|
-| Detect + embed 1 ảnh | ~50–200 ms CPU | cố định theo ảnh |
-| Load N profile từ DB | tăng tuyến tính | N |
-| Nhân ma trận (N=2 000) | dưới 1 ms | N |
-
-Ở quy mô đồ án, **suy luận model là điểm nghẽn, không phải so khớp**. Nhưng đây mới là ước lượng — Tuần 6 phải đo thật rồi mới chốt cải tiến, đúng nguyên tắc "không chọn cứng trước khi đo" trong kế hoạch.
-
-Model được **nạp một lần lúc khởi động** (singleton trong `app/ml/`), không nạp theo từng request — nạp lại mỗi request sẽ khiến throughput sụp xuống vài req/s và làm benchmark vô nghĩa.
-
----
-
-## 10. Session & transaction
-
-**Lựa chọn Pha 1: session/transaction theo request, repository chỉ flush.**
-
-```python
-# app/api/deps.py
-def get_db() -> Iterator[Session]:
-    with SessionLocal() as session:
-        yield session
-```
-
-| Tiêu chí | Cách đang chọn (request transaction) | Cách thay thế (Unit of Work) |
-|---|---|---|
-| Độ phức tạp | Thấp — đọc code là hiểu | Thêm 1 port + 1 adapter |
-| Ghi nhiều bảng trong 1 transaction | Chưa được Service điều phối rõ ràng | Làm được |
-| Phù hợp Pha 1? | **Có** — mọi use-case hiện tại chỉ ghi 1 bảng | Thừa |
-
-Repository gọi `flush()` để nhận khóa chính. Dependency `get_session` ở composition root commit khi
-request hoàn tất, commit audit của lỗi domain dự kiến và rollback lỗi hệ thống.
-
-**Khi nào phải đổi:** ngay khi xuất hiện use-case ghi ≥ 2 bảng cần toàn vẹn (ví dụ Pha 2 thêm idempotency key: ghi `check_in_records` + `idempotency_keys` phải cùng thành hoặc cùng bại). Lúc đó thêm port `UnitOfWork` với `commit()`/`rollback()` để Service biểu diễn ranh giới transaction rõ ràng. Xem [ADR 0001](adr/0001-database-repository-and-migrations.md).
-
----
-
-## 11. Xử lý lỗi
-
-Service **chỉ ném lỗi domain**, không biết mã HTTP. API layer dịch sang HTTP ở một chỗ duy nhất (`app/api/errors.py`):
-
-| Lỗi domain | HTTP | Body trả về |
-|---|---|---|
-| `InvalidCredentials` | 401 | thông điệp chung, không nói rõ sai email hay sai mật khẩu |
-| `PermissionDenied` | 403 | |
-| `UserNotFound`, `FaceProfileNotFound`, `CheckInNotFound` | 404 | |
-| `EmailAlreadyExists` | 409 | |
-| `NoFaceDetected` | 422 | gợi ý chụp lại rõ mặt |
-| `UnmatchedFace` | 404 | kèm `best_score` để hỗ trợ hiệu chỉnh ngưỡng |
-| Pydantic validation | 422 | FastAPI tự xử lý |
-| Ngoại lệ chưa lường | 500 | **chỉ trả `request_id`**, chi tiết ghi vào log |
-
-```python
-# app/api/errors.py
-@app.exception_handler(DomainError)
-def handle_domain_error(request: Request, exc: DomainError):
-    status = ERROR_STATUS_MAP.get(type(exc), 500)
-    return JSONResponse(status, {"detail": str(exc), "request_id": request.state.request_id})
-```
-
-Không để stack trace hay chuỗi kết nối DB lọt vào response — vừa là lỗ hổng bảo mật, vừa mất điểm trình bày.
-
----
-
-## 12. Cấu hình & triển khai
-
-Toàn bộ cấu hình qua biến môi trường (`app/core/config.py` dùng `pydantic-settings`), không có giá trị nào hard-code trong code:
-
-| Biến | Ví dụ | Ghi chú |
-|---|---|---|
-| `DATABASE_URL` | `postgresql+psycopg://app:app@db:5432/facecheckin` | SQLite cho test: `sqlite:///./test.db` |
-| `JWT_SECRET` | *(bắt buộc)* | **Không có giá trị mặc định** — thiếu thì app phải chết lúc khởi động, không được tự sinh tạm |
-| `JWT_ALGORITHM` | `HS256` | |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | |
-| `SIMILARITY_THRESHOLD` | `0.40` | hiệu chỉnh ở Tuần 3 |
-| `EMBEDDING_MODEL` | `buffalo_s` | ghi vào từng `face_profiles.model_name` |
-| `MAX_UPLOAD_MB` | `5` | chặn trước khi chạm model |
-
-`.env.example` phải liệt kê **đủ** các biến trên kèm giá trị giả — đây là dòng bắt buộc trong checklist bàn giao. `.env` thật không bao giờ được commit.
-
-**Docker Compose**: chỉ gồm `app`, `postgres` và service `migrate` chạy một lần. App chờ migration
-thành công; không dựng hạ tầng dự phòng. Migration dùng Alembic, không chạy `create_all()`.
-Các cải tiến tiềm năng được ghi tại [phase-2-improvements.md](phase-2-improvements.md), chỉ bổ sung
-dependency khi triển khai cải tiến đã chọn.
-
----
-
-## 13. Chiến lược test theo tầng
-
-| Loại | Thư mục | Kiểm cái gì | Phụ thuộc ngoài | Tốc độ |
-|---|---|---|---|---|
-| Unit | `tests/unit/` | Service + port giả: ngưỡng, phân quyền, nhánh lỗi | không | mili-giây |
-| Integration | `tests/integration/` | Repository với DB thật: mapping, cascade, index | SQLite/Postgres | giây |
-| API | `tests/api/` | ASGI AsyncClient: mã lỗi, ổ khóa auth, hình dạng JSON | app đầy đủ | giây |
-
-Ba ca test đáng giá nhất, viết trước:
-1. **Check-in thành công** — vector giả khớp profile giả, xác nhận ghi `status='success'` kèm `user_id`.
-2. **Check-in dưới ngưỡng** — xác nhận ghi `status='unmatched'` và `user_id` là NULL.
-3. **User thường gọi `GET /checkins` không kèm `user_id`** — xác nhận chỉ nhận về bản ghi của chính mình, không rò của người khác.
-
-Ca 3 là ca dễ hỏng nhất khi ai đó sửa router về sau, và là thứ mất điểm nặng nhất nếu lọt.
-
----
-
-## 14. Kiểm chứng phân tầng tự động
-
-Biến "tầng nghiệp vụ không import framework" từ lời hứa thành thứ CI bắt được:
-
-Ba contract nằm ở [`.importlinter`](../.importlinter), khớp đúng bảng quy tắc phụ thuộc ở mục 3:
-
-| Contract | Chặn điều gì |
-|---|---|
-| 1 | `app.services` / `app.domain` import `fastapi`, `sqlalchemy`, hay bất kỳ tầng nào bên trên |
-| 2 | Thứ tự tầng `api → services → domain` bị gọi ngược |
-| 3 | Adapter (`repositories`, `ml`) gọi ngược lên `api`/`services` |
-
-Chạy bằng `lint-imports`; đã nối vào CI ngay từ Tuần 1 và hiện **3/3 contract KEPT**. Đừng đợi tới Tuần 5 mới bật — lúc đó sẽ có sẵn hàng chục vi phạm phải gỡ ngược, đúng lúc đang bận Docker và README.
-
-*(Cân nhắc thêm `pydantic` vào contract 1: Service nên làm việc với domain entity, không phải DTO của API. Nếu thấy quá chặt thì bỏ ra, nhưng hãy ghi lý do vào ADR.)*
-
----
-
-## 15. Những điểm mở sẵn cho Pha 2
-
-Kiến trúc này cố ý để lại các "khớp nối" sau. Nhóm tiếp nhận có thể vào thẳng đây mà không phải đọc hết code:
-
-| Cải tiến khả dĩ | Sửa ở đâu | Không đụng tới |
-|---|---|---|
-| ONNX + quantization int8 | `app/ml/` — một adapter mới của `FaceEmbedder` | Service, API, DB |
-| Cache embedding đã trích xuất | lớp bọc quanh `FaceProfileRepository` | Service |
-| ANN index (FAISS/HNSW/pgvector) | adapter repository mới + `find_nearest()` thêm vào port | API |
-| Cache Redis cho GET đọc nhiều | lớp bọc quanh repository | Service |
-| Async DB driver (`asyncpg`) | `app/repositories/` + `deps.py` | domain, phần lớn Service |
-| Nhiều worker (Gunicorn+Uvicorn) | Dockerfile/compose | toàn bộ code |
-| Rate limiting đăng nhập | middleware ở `app/api/` | Service |
-
-Đọc bảng này theo chiều dọc cột 3: **hầu như mọi cải tiến đều không chạm vào tầng nghiệp vụ.** Đó là toàn bộ lý do tồn tại của kiến trúc port/adapter — và cũng là điều đáng nói nhất khi bảo vệ Pha 2.
-
----
-
-## 16. Những gì cố tình KHÔNG làm ở Pha 1
-
-Đề bài ghi *"Chỉ triển khai chức năng cơ bản, không cần tối ưu"*. Ghi lại để nhóm nhận hệ thống hiểu đây là lựa chọn, không phải làm thiếu:
-
-| Không làm | Lý do |
-|---|---|
-| Async/await toàn hệ thống | Sync đơn giản hơn để viết đúng; chuyển sang async là ứng viên cải tiến Pha 2 có thể đo được |
-| ANN index cho so khớp | Quét tuyến tính là baseline cần thiết — tối ưu sẵn thì không còn gì để so |
-| Refresh token, đăng xuất | Access token đủ cho yêu cầu Pha 1 |
-| Cache | Chưa có số đo chứng minh cần; thêm mù quáng là phản lại tinh thần Pha 2 |
-| Phân trang kiểu cursor | `limit/offset` đủ với dữ liệu quy mô này |
-| Chống giả mạo khuôn mặt (liveness) | Ngoài phạm vi môn học, và là bài toán khó tự thân |
-| Đa tenant, đa chi nhánh | Không có trong đặc tả |
-
----
-
-## 17. Rủi ro kiến trúc đã biết
-
-| Rủi ro | Dấu hiệu nhận ra | Xử lý |
-|---|---|---|
-| Object ORM rò ra khỏi repository | Import `app.models` xuất hiện trong service/router | `import-linter` contract 1 bắt được |
-| Auth bị copy vào từng handler | Có `decode_token` ở nhiều file router | Review chéo bắt buộc ở Tuần 4 (đã có trong checklist) |
-| Model nạp lại mỗi request | Throughput chỉ vài req/s ở Tuần 6 | Nạp singleton lúc khởi động; kiểm chứng bằng log thời gian khởi tạo |
-| Ngưỡng similarity chốt bừa | Check-in nhận nhầm người, hoặc luôn `unmatched` | Hiệu chỉnh bằng dữ liệu ở Tuần 3, lưu `threshold` vào từng bản ghi |
-| Timestamp lệch giữa SQLite và Postgres | Test pass local, filter theo ngày sai trên Docker | Luôn dùng UTC-aware ở tầng app (xem erd.md mục 6) |
-| Vòng nhập khẩu (circular import) giữa domain và services | `ImportError` lúc khởi động | Domain không được import services — mũi tên chỉ một chiều |
-
----
-
-## 18. Architecture Decision Records
-
-- [ADR 0001 — Database, Repository và migration](adr/0001-database-repository-and-migrations.md)
-- [ADR 0002 — Authentication và authorization](adr/0002-authentication-and-authorization.md)
-- [ADR 0003 — Face embedding và cách lưu trữ](adr/0003-face-embedding-and-storage.md)
-- [ADR 0004 — Ranh giới hạ tầng Pha 1 và Pha 2](adr/0004-phase-1-infrastructure-boundary.md)
+Chi tiết: [ERD](erd.md), [API](api-spec.md), [cách chạy](running.md),
+[kết quả baseline](benchmark-phase1.md), [cách đo](benchmark-phase1.md#7-chạy-lại-trên-kaggle-cpu),
+[hướng cải tiến](phase-2-improvements.md).

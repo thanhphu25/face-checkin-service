@@ -70,43 +70,11 @@ Handler truy xuất có thể tìm resource trước khi kiểm tra ownership; k
 `username` chứa email; không gửi JSON với field `email`. Email chuẩn hóa bằng `strip + casefold`.
 Email không tồn tại và mật khẩu sai cùng trả `401`, thông điệp chung.
 
-```http
-POST /api/v1/auth/login
-Content-Type: application/x-www-form-urlencoded
-
-username=user.sample%40example.test&password=<MAT_KHAU_DEMO>
-```
-
-```json
-{"access_token":"<ACCESS_TOKEN>","token_type":"bearer"}
-```
-
 ### POST `/api/v1/users`
 
 Admin tạo user; các field `email`, `password`, `full_name` bắt buộc, `role` mặc định `user`.
 Email 3–255 ký tự và theo pattern email của schema; password 8–128 ký tự; tên sau trim 1–255
-ký tự. Role chỉ nhận `admin` hoặc `user`. Password trong ví dụ dưới đây là placeholder.
-
-```json
-{
-  "email": "nguyenvana@example.test",
-  "password": "<MAT_KHAU_DEMO>",
-  "full_name": "Nguyễn Văn A",
-  "role": "user"
-}
-```
-
-Response `201`, ví dụ với ID do database cấp:
-
-```json
-{
-  "id": 3,
-  "email": "nguyenvana@example.test",
-  "role": "user",
-  "full_name": "Nguyễn Văn A",
-  "created_at": "2026-10-11T02:00:00Z"
-}
-```
+ký tự. Role chỉ nhận `admin` hoặc `user`.
 
 GET user/me dùng cùng schema, không trả password/hash. GET danh sách user chưa có pagination,
 sắp xếp ID tăng dần. Xóa user xóa các profile thuộc user và giữ lịch sử check-in với liên kết
@@ -119,12 +87,6 @@ sắp xếp ID tăng dần. Xóa user xóa các profile thuộc user và giữ l
 Bearer token bắt buộc. Gửi một file `image`, không cần đặt `Content-Type` thủ công khi dùng
 Swagger hoặc thư viện multipart vì boundary được client tạo. Ảnh phải có đúng một khuôn mặt.
 API tự gắn profile vào user hiện hành; `user_id` không phải tham số của thao tác đăng ký.
-
-Response `201`:
-
-```json
-{"id":7,"user_id":3,"model_name":"buffalo_s","created_at":"2026-10-11T02:05:00Z"}
-```
 
 Không có mặt khi **đăng ký** trả `422 NoFaceDetected` và không tạo check-in audit. Một user có
 thể đăng ký nhiều profile; baseline chưa có giới hạn số profile hoặc phát hiện đăng ký trùng.
@@ -149,39 +111,12 @@ API công khai cho thiết bị; không nhận ID user, hệ thống xác địn
 normalization, chọn profile cùng model/dimension có cosine similarity cao nhất. Điểm bằng ngưỡng
 được chấp nhận. Giá trị ngưỡng mặc định `0.40`, có thể đổi bằng cấu hình.
 
-Response `201` khi `success`, ví dụ minh họa:
-
-```json
-{
-  "id": 25,
-  "user_id": 3,
-  "matched_face_profile_id": 7,
-  "checkin_time": "2026-10-11T02:10:00Z",
-  "similarity_score": 0.86,
-  "threshold": 0.4,
-  "status": "success",
-  "full_name": "Nguyễn Văn A"
-}
-```
-
 Hai nhánh thất bại nghiệp vụ **vẫn ghi DB**, nhưng response là lỗi thay vì `CheckInResult`:
 
 | Nhánh | HTTP | Bản ghi lưu | Field thêm trong lỗi |
 |---|---|---|---|
 | Không có profile phù hợp hoặc điểm dưới ngưỡng | `404` | `status=unmatched`, liên kết user/profile `null` | `record_id`, `best_score` (có thể `null`) |
 | Không có mặt trong ảnh giải mã được | `422` | `status=no_face`, score/liên kết `null` | `record_id` |
-
-Ví dụ unmatched (giá trị score/ID chỉ minh họa):
-
-```json
-{"detail":"No registered face matched the image","error":"UnmatchedFace","record_id":26,"best_score":0.21}
-```
-
-Ví dụ no face:
-
-```json
-{"detail":"No face was detected in the image","error":"NoFaceDetected","record_id":27}
-```
 
 Ảnh rỗng, quá dung lượng, MIME sai hoặc không giải mã được trả `400`; nhiều mặt/lỗi embedding
 trả `422`. Các nhánh này không tạo bản ghi audit. Mỗi request success tạo một record mới;
@@ -202,11 +137,7 @@ chiều hợp lệ về định dạng trả danh sách rỗng. Đây là giới
 
 Kết quả mới nhất trước (`checkin_time DESC`, rồi `id DESC`); chưa có offset/cursor. Admin không
 lọc thấy cả `unmatched`/`no_face`; user thường chỉ thấy record có ID user của mình. Admin lọc một
-user không tồn tại nhận `[]` ở endpoint này. Ví dụ query:
-
-```text
-/api/v1/checkins?start=2026-10-11T00:00:00Z&end=2026-10-12T00:00:00Z&limit=50
-```
+user không tồn tại nhận `[]` ở endpoint này.
 
 ### GET/DELETE `/api/v1/checkins/{record_id}`
 
@@ -216,12 +147,7 @@ trả `404`.
 
 ## 7. Lỗi và giới hạn contract
 
-Domain error thường có dạng:
-
-```json
-{"detail":"Thông điệp lỗi","error":"TênDomainError"}
-```
-
+Lỗi domain có `detail` và `error`; lỗi điểm danh có thể thêm `record_id`/`best_score`.
 Lỗi validation FastAPI dùng `detail` dạng array chứa `loc`, `msg`, `type` và có thể thêm field
 khác. Lỗi thiếu Bearer token do framework xử lý có thể chỉ có `detail`, không có `error`.
 Không nên giả định mọi response lỗi cùng một schema. `401` có header `WWW-Authenticate: Bearer`.
@@ -238,12 +164,39 @@ OpenAPI tự sinh hiện mô tả response thành công và validation `422`, ch
 lỗi domain cho từng route. Client cần đọc bảng lỗi ở tài liệu này. Việc đồng bộ error contract
 vào OpenAPI là một hạng mục có thể cải tiến sau review.
 
-## 8. Nguồn đối chiếu
+## 8. Kiểm thử thủ công trên Swagger
 
-- Router: [auth](../app/api/v1/auth.py), [users](../app/api/v1/users.py),
-  [face profiles](../app/api/v1/face_profiles.py), [check-ins](../app/api/v1/check_ins.py).
-- [Schema DTO](../app/schemas/), [service](../app/services/),
-  [phân quyền](../app/services/authorization.py), [repository](../app/repositories/).
+Dựng stack và seed theo [hướng dẫn vận hành](running.md#4-chạy-từ-máy-sạch-bằng-docker-compose).
+Có thể dùng seed chỉ tài khoản với `--skip-face-profile`, rồi đăng ký mặt trực tiếp. Mật khẩu
+lấy từ `SEED_ADMIN_PASSWORD`/`SEED_USER_PASSWORD` của người chạy, không có mật khẩu demo cố định.
+
+Mở http://localhost:8000/docs, dùng **Try it out** và **Execute**. Bấm **Authorize**, điền email
+vào `username`, mật khẩu vào `password`; để trống client ID/secret. Gọi API login trực tiếp chỉ
+trả token, không tự Authorize Swagger. Khi đổi vai trò, Logout trong Authorize rồi đăng nhập lại.
+Logout tại Swagger chỉ bỏ credential ở trình duyệt, không thu hồi JWT trên server.
+
+Chuẩn bị ảnh một mặt để đăng ký/điểm danh, ảnh người chưa đăng ký, ảnh không mặt, ảnh nhiều mặt
+và một file sai định dạng. Ảnh khác người không bảo đảm luôn unmatched: kết quả phụ thuộc score.
+Ghi lại ID thực tế từ response, không giả định ID bắt đầu từ 1.
+
+| Bước | Thao tác | Kết quả đối chiếu |
+|---|---|---|
+| 1 | Gọi health, login, auth/me | Health 200; login hợp lệ có JWT; me không có token trả 401 |
+| 2 | Admin tạo, liệt kê và đọc user | 201/200; thử cùng thao tác tạo bằng user thường nhận 403 |
+| 3 | User đăng ký ảnh một mặt | 201; profile thuộc user hiện hành, không trả embedding |
+| 4 | Gửi lại ảnh đó tới POST checkins công khai | 201 khi đạt ngưỡng; lưu ID record và user khớp |
+| 5 | Gửi ảnh dưới ngưỡng, ảnh không mặt, file sai và ảnh nhiều mặt | Unmatched 404 có record_id; no_face 422 có record_id; file sai/nhiều mặt không tạo record |
+| 6 | User/admin xem profile và lịch sử, thử bộ lọc | User chỉ thấy dữ liệu mình; admin thấy cả unmatched/no_face |
+| 7 | User khác đọc record hoặc xóa profile của người khác | 403 với tài nguyên tồn tại; thiếu token trả 401 |
+| 8 | Admin hoặc chủ profile xóa profile; admin xóa user/check-in thử nghiệm | 204; sau xóa profile/user, lịch sử còn với liên kết đã xóa thành null |
+
+Khi dọn dữ liệu, chỉ xóa các ID tạo cho lần thử; dọn record trước, rồi profile/user. Không xóa
+user đang dùng để test khi vẫn cần token của user đó. Lệnh xóa volume trong hướng dẫn vận hành chỉ dành cho
+project cách ly hoặc khi chủ động bỏ toàn bộ dữ liệu.
+
+## 9. Nguồn đối chiếu
+
+- [Router](../app/api/v1/), [schema DTO](../app/schemas/), [Service](../app/services/).
 - [Upload](../app/api/uploads.py), [ánh xạ lỗi](../app/api/errors.py),
-  [dependency/session/auth](../app/api/deps.py), [InsightFace adapter](../app/ml/insightface_embedder.py).
-- [Hướng dẫn Swagger](swagger-api-testing.md), [hợp đồng JWT/RBAC](week-4-auth-contract.md).
+  [middleware](../app/api/authentication.py), [dependency](../app/api/deps.py).
+- [OpenAPI JSON](openapi.json), [quyết định JWT/RBAC](architecture.md#auth).

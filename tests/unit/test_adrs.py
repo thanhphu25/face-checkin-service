@@ -1,22 +1,22 @@
 from pathlib import Path
 
-ADR_FILES = sorted(Path("docs/adr").glob("*.md"))
+DECISIONS_DOCUMENT = Path("docs/architecture.md")
 
 
 def test_adrs_use_consistent_structure_and_change_conditions() -> None:
-    assert len(ADR_FILES) == 5
-    for path in ADR_FILES:
-        content = path.read_text(encoding="utf-8")
-        assert "- Status: Accepted" in content
-        assert "## Context" in content
-        assert "## Decision" in content
-        assert "## Alternatives considered" in content
-        assert "## Consequences" in content
-        assert "xem lại" in content.casefold()
+    content = DECISIONS_DOCUMENT.read_text(encoding="utf-8")
+    assert "quyết định đã chấp nhận" in content
+    decisions_section = content.split("\n## Quyết định thiết kế\n", 1)[1]
+    decisions = decisions_section.split("\n### ")[1:]
+    assert len(decisions) == 5
+    for decision in decisions:
+        assert "**Lựa chọn:**" in decision
+        assert "**Lý do và đánh đổi:**" in decision
+        assert "**Khi cần xem lại:**" in decision
 
 
 def test_adrs_record_the_implemented_phase_1_boundaries() -> None:
-    content = "\n".join(path.read_text(encoding="utf-8") for path in ADR_FILES)
+    content = DECISIONS_DOCUMENT.read_text(encoding="utf-8")
 
     for decision in (
         "PostgreSQL",
