@@ -21,7 +21,7 @@ _SALT_BYTES = 16
 
 
 class PBKDF2PasswordHasher(PasswordHasher):
-    """Legacy week-3 verifier retained for existing development data."""
+    """Giữ khả năng xác minh mật khẩu PBKDF2 của dữ liệu cũ."""
 
     def hash(self, password: str) -> str:
         salt = secrets.token_bytes(_SALT_BYTES)
@@ -72,6 +72,7 @@ class Argon2PasswordHasher(PasswordHasher):
         candidate_hash = password_hash
         is_dummy = not password_hash.startswith("$argon2")
         if is_dummy:
+            # Vẫn chạy Argon2 khi thiếu hash để hạn chế lộ tài khoản qua thời gian xử lý.
             candidate_hash = _dummy_argon2_hash()
         try:
             verified = self._argon2.verify(candidate_hash, password)

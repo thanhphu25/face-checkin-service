@@ -7,7 +7,7 @@ from app.models import CheckInRecordORM, FaceProfileORM, UserORM
 
 
 def _utc(value: datetime) -> datetime:
-    """Restore UTC information that SQLite drops from timezone-aware columns."""
+    """Khôi phục múi giờ UTC bị SQLite lược bỏ khi lưu datetime."""
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
@@ -25,6 +25,7 @@ def user_to_domain(row: UserORM) -> User:
 
 
 def face_profile_to_domain(row: FaceProfileORM) -> FaceProfile:
+    # Đọc đúng float32 little-endian; copy để vector không phụ thuộc buffer của ORM.
     embedding = np.frombuffer(row.embedding, dtype="<f4")
     if embedding.size != row.embedding_dim:
         raise ValueError(

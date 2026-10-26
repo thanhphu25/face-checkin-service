@@ -98,6 +98,7 @@ app/
 │   └── security.py          # hash/verify mật khẩu, encode/decode JWT
 ├── domain/                  # ❤️ LÕI — Python thuần, không phụ thuộc gì
 │   ├── entities.py          # User, FaceProfile, CheckInRecord (dataclass)
+│   ├── embeddings.py        # kiểm tra và chuẩn hóa L2 embedding dùng chung
 │   ├── ports.py             # các ABC: *Repository, FaceEmbedder, PasswordHasher
 │   └── errors.py            # EmailAlreadyExists, NoFaceDetected, ...
 ├── services/                # nghiệp vụ, Python thuần
@@ -149,7 +150,8 @@ tests/
 
 ### 5.1. Domain (`app/domain/`) — lõi
 
-Không có logic điều phối, chỉ có **dữ liệu và hợp đồng**.
+Chứa **dữ liệu, hợp đồng và quy tắc thuần Python dùng chung**; không điều phối use case.
+`embeddings.py` dùng chung phép kiểm tra và chuẩn hóa L2 cho Service và adapter ML.
 
 ```python
 # entities.py — không kế thừa gì, không decorator của framework

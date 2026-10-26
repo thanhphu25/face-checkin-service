@@ -59,8 +59,7 @@ class JWTAuthenticationBackend(AuthenticationBackend):
             algorithm=settings.jwt_algorithm,
         )
         session_factory = self._session_factory_provider()
-        # Create, use and close the read session in the same worker thread. Only a
-        # domain entity leaves this scope; endpoint writes use their own session.
+        # Đóng session đọc ngay trong worker; endpoint dùng session ghi riêng.
         with session_factory() as session:
             user = SQLAlchemyUserRepository(session).get(claims.user_id)
         if user is None:

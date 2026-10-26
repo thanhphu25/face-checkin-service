@@ -144,6 +144,21 @@ def test_check_in_selects_highest_cosine_match_and_saves_success() -> None:
     assert records.items[result.id] == result
 
 
+def test_check_in_accepts_threshold_equality_and_keeps_first_tied_profile() -> None:
+    service, _ = _service(
+        [_profile(1, 10, [3.0, 4.0]), _profile(2, 20, [3.0, 4.0])],
+        embedding=np.array([3.0, 4.0]),
+        threshold=1.0,
+    )
+
+    result = service.check_in(b"image")
+
+    assert result.status is CheckInStatus.SUCCESS
+    assert result.user_id == 10
+    assert result.matched_face_profile_id == 1
+    assert result.similarity_score == 1.0
+
+
 def test_check_in_saves_unmatched_before_raising() -> None:
     service, records = _service([_profile(1, 10, [0.0, 1.0])], threshold=0.5)
 

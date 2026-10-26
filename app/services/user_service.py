@@ -77,6 +77,7 @@ class UserService:
             normalized_email = ""
         user = self._users.get_by_email(normalized_email)
         password_hash = user.hashed_password if user is not None else ""
+        # Luôn xác minh hash, kể cả khi email sai hoặc không tồn tại.
         password_matches = self._password_hasher.verify(password, password_hash)
         if user is None or not password_matches:
             raise AuthenticationFailed()

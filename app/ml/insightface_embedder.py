@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from insightface.app import FaceAnalysis
 
+from app.domain.embeddings import normalize_embedding
 from app.domain.errors import (
     FaceEmbeddingFailed,
     InvalidImage,
@@ -51,6 +52,7 @@ class InsightFaceEmbedder(FaceEmbedder):
         if image is None or image.size == 0:
             raise InvalidImage("Image is empty or cannot be decoded")
 
+        # Hai khuôn mặt là đủ để từ chối ảnh không hợp lệ cho thao tác một người.
         faces = self._analysis.get(image, max_num=2)
         if not faces:
             raise NoFaceDetected("No face was detected in the image")
@@ -61,12 +63,4 @@ class InsightFaceEmbedder(FaceEmbedder):
         if raw_embedding is None:
             raise FaceEmbeddingFailed("InsightFace did not return an embedding")
 
-        embedding = np.asarray(raw_embedding, dtype=np.float32)
-        if embedding.ndim != 1 or embedding.size == 0 or not np.all(np.isfinite(embedding)):
-            raise FaceEmbeddingFailed("InsightFace returned an invalid embedding")
-
-        norm = float(np.linalg.norm(embedding))
-        if not np.isfinite(norm) or norm <= np.finfo(np.float32).eps:
-            raise FaceEmbeddingFailed("InsightFace returned a zero-length embedding")
-
-        return np.ascontiguousarray(embedding / norm, dtype=np.float32)
+        return normalize_embedding(raw_embedding, source="InsightFace")

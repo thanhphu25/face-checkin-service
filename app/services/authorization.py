@@ -15,6 +15,7 @@ def require_owner_or_admin(requester: User, *, owner_id: int | None) -> None:
 
 
 def scope_user_id(requester: User, *, requested_user_id: int | None) -> int | None:
+    """Admin được lọc tùy ý; user thường luôn chỉ xem dữ liệu của mình."""
     if requester.role is Role.ADMIN:
         return requested_user_id
     if requester.id is None:

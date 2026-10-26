@@ -41,7 +41,7 @@ def get_session() -> Iterator[Session]:
     try:
         yield session
     except DomainError:
-        # Expected check-in failures are audit events and must remain persisted.
+        # Vẫn commit khi có lỗi nghiệp vụ để giữ lịch sử check-in thất bại.
         session.commit()
         raise
     except BaseException:
@@ -105,8 +105,7 @@ TokenDependency = Annotated[str, Depends(oauth2_scheme)]
 
 
 def get_current_user(request: Request, _token: TokenDependency) -> User:
-    # OAuth2PasswordBearer declares Swagger security and requires a bearer header.
-    # JWT validation and user lookup have already run in AuthenticationMiddleware.
+    # OAuth2 khai báo bảo mật cho Swagger; middleware đã xác thực JWT và tải user.
     principal = request.user
     if not isinstance(principal, AuthenticatedUser):
         raise InvalidToken()

@@ -1,10 +1,9 @@
 from collections.abc import Callable
 from datetime import UTC, datetime
 
-import numpy as np
-
+from app.domain.embeddings import normalize_embedding
 from app.domain.entities import FaceProfile, User
-from app.domain.errors import FaceEmbeddingFailed, FaceProfileNotFound, UserNotFound
+from app.domain.errors import FaceProfileNotFound, UserNotFound
 from app.domain.ports import FaceEmbedder, FaceProfileRepository, UserRepository
 from app.services.authorization import require_owner_or_admin, scope_user_id
 
@@ -27,18 +26,12 @@ class FaceProfileService:
         if self._users.get(user_id) is None:
             raise UserNotFound(f"User {user_id} was not found")
 
-        embedding = np.asarray(self._embedder.embed(image_bytes), dtype=np.float32)
-        if embedding.ndim != 1 or embedding.size == 0 or not np.all(np.isfinite(embedding)):
-            raise FaceEmbeddingFailed("Face embedder returned an invalid embedding")
-        norm = float(np.linalg.norm(embedding))
-        if not np.isfinite(norm) or norm <= np.finfo(np.float32).eps:
-            raise FaceEmbeddingFailed("Face embedder returned a zero-length embedding")
-
+        embedding = normalize_embedding(self._embedder.embed(image_bytes))
         return self._profiles.add(
             FaceProfile(
                 id=None,
                 user_id=user_id,
-                embedding=np.ascontiguousarray(embedding / norm, dtype=np.float32),
+                embedding=embedding,
                 model_name=self._embedder.model_name,
                 created_at=self._clock(),
             )

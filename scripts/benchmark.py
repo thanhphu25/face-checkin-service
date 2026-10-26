@@ -152,7 +152,7 @@ def sorted_statuses(statuses: dict[int | str, int]) -> list[tuple[str, int]]:
 
 
 def percentile(values: tuple[float, ...], percent: int) -> float:
-    """Nearest-rank percentile, so a reported value is always an observed one."""
+    """Lấy phân vị theo thứ hạng gần nhất, luôn trả về một giá trị đã đo."""
     if not values:
         return math.nan
     ordered = sorted(values)
@@ -299,7 +299,7 @@ def read_process_cpu_ticks(pid: int) -> float | None:
         raw = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
     except OSError:
         return None
-    # The comm field is parenthesised and may contain spaces, so split after it.
+    # Tên tiến trình nằm trong ngoặc và có thể chứa dấu cách; tách sau dấu đóng ngoặc.
     _, separator, rest = raw.partition(") ")
     if not separator:
         return None
@@ -312,7 +312,7 @@ def read_process_cpu_ticks(pid: int) -> float | None:
 class CpuSampler:
     """Measure CPU utilisation between two points in time."""
 
-    # Jiffies tick ~100 times per second, so a shorter window quantises into noise.
+    # Bộ đếm CPU có độ phân giải hữu hạn; cửa sổ quá ngắn làm phép đo thiếu chính xác.
     MINIMUM_WINDOW_SECONDS = 0.5
 
     def __init__(self, server_pid: int | None) -> None:
@@ -387,6 +387,7 @@ async def _drive(send, count: int, concurrency: int) -> tuple[list[float], Count
 
     async def one_request() -> None:
         async with semaphore:
+            # Chỉ đo thời gian gửi/nhận, không tính thời gian chờ lượt của semaphore.
             started = time.perf_counter()
             try:
                 response = await send()
@@ -412,8 +413,7 @@ async def run_level(
     if config.warmup:
         await _drive(send, config.warmup, min(concurrency, config.warmup))
 
-    # ONNX Runtime keeps its thread pool spinning after an inference, so CPU from
-    # the previous level would otherwise be charged to this one.
+    # Chờ thread pool ONNX nghỉ để CPU của lượt trước không bị tính vào lượt này.
     await asyncio.sleep(config.settle_seconds)
 
     count = config.requests_for(scenario)

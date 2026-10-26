@@ -1,6 +1,6 @@
 """Sample images derived from the public picture bundled with the InsightFace wheel.
 
-Seeding, verification and benchmarking all need a face the embedder can actually
+Seeding and benchmarking need a face the embedder can actually
 process. Deriving it from the installed wheel keeps real face photos out of Git
 while every run still gets byte-identical input.
 """
@@ -10,9 +10,8 @@ from pathlib import Path
 
 import cv2
 import insightface
-import numpy as np
 
-# Crop window of one face inside the bundled group photo `t1.jpg`.
+# Cắt đúng một khuôn mặt từ ảnh nhóm `t1.jpg` đi kèm package.
 _FACE_CROP = (slice(290, 530), slice(690, 900))
 
 
@@ -31,18 +30,3 @@ def face_image_bytes() -> bytes:
     if not encoded:
         raise RuntimeError("Cannot encode the sample face crop")
     return payload.tobytes()
-
-
-@lru_cache
-def no_face_image_bytes() -> bytes:
-    """Return a PNG the detector must reject."""
-    encoded, payload = cv2.imencode(".png", np.zeros((128, 128, 3), dtype=np.uint8))
-    if not encoded:
-        raise RuntimeError("Cannot encode the no-face sample image")
-    return payload.tobytes()
-
-
-def write_face_image(destination: Path) -> Path:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_bytes(face_image_bytes())
-    return destination

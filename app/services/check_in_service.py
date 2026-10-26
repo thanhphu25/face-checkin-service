@@ -1,10 +1,12 @@
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import NoReturn
 
 import numpy as np
 
+from app.domain.embeddings import normalize_embedding
 from app.domain.entities import CheckInRecord, CheckInStatus, User
-from app.domain.errors import CheckInNotFound, FaceEmbeddingFailed, NoFaceDetected, UnmatchedFace
+from app.domain.errors import CheckInNotFound, NoFaceDetected, UnmatchedFace
 from app.domain.ports import CheckInRepository, FaceEmbedder, FaceProfileRepository
 from app.services.authorization import require_admin, require_owner_or_admin, scope_user_id
 
@@ -29,8 +31,9 @@ class CheckInService:
 
     def check_in(self, image_bytes: bytes) -> CheckInRecord:
         try:
-            query = self._normalized(self._embedder.embed(image_bytes))
+            query = normalize_embedding(self._embedder.embed(image_bytes))
         except NoFaceDetected as exc:
+            # Lưu lịch sử trước khi trả lỗi để lần check-in này vẫn được ghi nhận.
             record = self._save(
                 status=CheckInStatus.NO_FACE,
                 user_id=None,
@@ -39,6 +42,7 @@ class CheckInService:
             )
             raise NoFaceDetected(str(exc), record_id=record.id) from exc
 
+        # Chỉ so sánh các vector cùng model và kích thước với ảnh đầu vào.
         candidates = [
             profile
             for profile in self._profiles.list_all()
@@ -47,16 +51,17 @@ class CheckInService:
             and profile.embedding.shape == query.shape
         ]
         if not candidates:
-            return self._raise_unmatched(None)
+            self._raise_unmatched(None)
 
-        matrix = np.stack([self._normalized(profile.embedding) for profile in candidates])
+        # Vector đã chuẩn hóa: tích vô hướng là cosine; clip sai số về [-1, 1].
+        matrix = np.stack([normalize_embedding(profile.embedding) for profile in candidates])
         scores = np.clip(matrix @ query, -1.0, 1.0)
         best_index = int(np.argmax(scores))
         best_score = float(scores[best_index])
         best_profile = candidates[best_index]
 
         if best_score < self._threshold:
-            return self._raise_unmatched(best_score)
+            self._raise_unmatched(best_score)
 
         return self._save(
             status=CheckInStatus.SUCCESS,
@@ -132,7 +137,7 @@ class CheckInService:
             )
         )
 
-    def _raise_unmatched(self, best_score: float | None) -> CheckInRecord:
+    def _raise_unmatched(self, best_score: float | None) -> NoReturn:
         record = self._save(
             status=CheckInStatus.UNMATCHED,
             user_id=None,
@@ -140,13 +145,3 @@ class CheckInService:
             score=best_score,
         )
         raise UnmatchedFace(best_score, record_id=record.id)
-
-    @staticmethod
-    def _normalized(embedding: np.ndarray) -> np.ndarray:
-        vector = np.asarray(embedding, dtype=np.float32)
-        if vector.ndim != 1 or vector.size == 0 or not np.all(np.isfinite(vector)):
-            raise FaceEmbeddingFailed("Face embedder returned an invalid embedding")
-        norm = float(np.linalg.norm(vector))
-        if not np.isfinite(norm) or norm <= np.finfo(np.float32).eps:
-            raise FaceEmbeddingFailed("Face embedder returned a zero-length embedding")
-        return np.ascontiguousarray(vector / norm, dtype=np.float32)

@@ -13,8 +13,7 @@ class CheckInRecordORM(Base):
             "status IN ('success', 'unmatched', 'no_face')",
             name="status",
         ),
-        # A successful insert must have a score. Its user can later become NULL through
-        # ON DELETE SET NULL so attendance history survives identity deletion.
+        # Giữ lịch sử có điểm khớp khi xóa user; khóa ngoại được đặt về NULL.
         CheckConstraint(
             "status <> 'success' OR similarity_score IS NOT NULL",
             name="success_score",
