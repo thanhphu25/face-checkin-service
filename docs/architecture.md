@@ -184,10 +184,13 @@ kiểm thử hành vi lỗi, tính nhất quán và benchmark trước/sau.
 
 **Lựa chọn:** đo trên Kaggle CPU, Uvicorn một worker ngoài Compose; tách tải điểm danh và đọc lịch
 sử, đo cả SQLite/PostgreSQL. Percentile dùng nearest-rank; warm-up tách khỏi số liệu và có khoảng
-lặng trước khi đo CPU. Kết quả lưu CSV kèm metadata.
+lặng trước khi đo CPU. Kết quả lưu CSV kèm metadata. Notebook:
+[Face Check-in Benchmark trên Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark).
 
 **Lý do và đánh đổi:** Kaggle notebook không chạy Docker; kết quả chỉ đại diện cấu hình đã đo.
 Baseline có một profile nên chưa phản ánh dữ liệu lớn và không chứng minh độ chính xác nhận diện.
+Bộ hiện hành đo ngày 27/10/2026 tại commit `3503b24`, 8.480 request không lỗi HTTP;
+mỗi cấu hình có một lượt đo. Chi tiết nằm trong [báo cáo benchmark](benchmark-phase1.md).
 
 **Khi cần xem lại:** đổi phần cứng, dữ liệu, workload hoặc tham số phải đo lại baseline tương ứng.
 CI kiểm tra unit/API/integration, phân tầng, Docker và Compose; test model thật chạy riêng.

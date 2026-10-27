@@ -6,13 +6,16 @@ Hiện chưa có số liệu chứng minh cải thiện so với baseline Pha 1.
 
 ## 1. Bằng chứng và phạm vi
 
-Baseline tại commit 4affbd0 ngày 2026-09-22, Kaggle CPU 4 core, Uvicorn một worker, ngoài Compose.
-PostgreSQL check-in đạt 4,83 req/s ở concurrency 1 và 8,46 ở concurrency 8; p95 tăng từ 227,7 lên
-1.116 ms. CPU máy gần bão hòa khi tăng tải. Baseline chỉ có một profile và lịch sử nhỏ, chưa đo
-chi phí riêng từng công đoạn, dữ liệu lớn hoặc tải hỗn hợp.
+Baseline Pha 1 hiện hành tại commit `3503b24` ngày 2026-10-27, Kaggle CPU 4 core, Uvicorn một worker,
+ngoài Compose. [Notebook Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark) có bộ kết quả
+với thời điểm metadata PostgreSQL 10:55:26 (UTC+7): check-in đạt 6,424 req/s ở concurrency 1 và
+10,140 ở concurrency 8; p95 tăng từ 167,79 lên 874,75 ms. CPU máy gần bão hòa khi tăng tải.
+Baseline chỉ có một profile và lịch sử nhỏ, chưa đo chi phí riêng từng công đoạn, dữ liệu lớn
+hoặc tải hỗn hợp.
 
 Code hiện tại dùng SQLAlchemy đồng bộ, InsightFace CPU, matching toàn bộ profile và chưa có cache.
-Middleware đã đổi sau commit benchmark; cần đo lại bản nhận được trước khi đánh giá phương án.
+Trước khi đánh giá phương án, cần đo lặp cả bản gốc và bản cải tiến trên cùng cấu hình;
+chưa có kết quả trước/sau Pha 2.
 Xem [số liệu, giới hạn và cách chạy](benchmark-phase1.md), [kiến trúc](architecture.md).
 
 ## 2. Vấn đề, phương án và tiêu chí đánh giá

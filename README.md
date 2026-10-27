@@ -167,17 +167,19 @@ Xuất lại JSON bằng `uv run python -m scripts.export_openapi`; test kiểm 
 
 ## 6. Vấn đề Phase 1 và hướng cải tiến Phase 2
 
-Baseline lịch sử ngày **22/09/2026**, commit `4affbd0`, Kaggle CPU 4 core, Uvicorn một worker,
-ngoài Compose; kết quả `POST /api/v1/checkins` với PostgreSQL:
+Baseline Pha 1 ngày **27/10/2026**, commit `3503b24`, Kaggle CPU 4 core, Uvicorn một worker,
+ngoài Compose. Notebook: [Face Check-in Benchmark trên Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark).
+Kết quả `POST /api/v1/checkins` với PostgreSQL trong lượt ghi metadata lúc 10:55:26 (UTC+7):
 
 | Request đồng thời | Throughput (request/giây) | p95 (ms) | CPU toàn máy |
 |---:|---:|---:|---:|
-| 1 | 4,83 | 227,7 | 78,8% |
-| 8 | 8,46 | 1.116,0 | 99,7% |
+| 1 | 6,42 | 167,79 | 76,1% |
+| 8 | 10,14 | 874,75 | 99,7% |
 
 p95 là mốc thời gian bao phủ khoảng 95% request. Khi tải tăng, CPU gần bão hòa và p95 tăng
-khoảng 4,9 lần. Bộ đo chỉ có **một profile**, một lượt mỗi cấu hình và chưa tách thời gian
-inference/DB/matching. Middleware đã đổi sau commit đo; phải đo lại bản bàn giao trước so sánh.
+khoảng 5,2 lần. Cả 8.480 request đo trên SQLite/PostgreSQL không có lỗi HTTP. History đạt đỉnh
+ở concurrency 2: 142,43 req/s với SQLite và 124,41 req/s với PostgreSQL. Bộ đo chỉ có **một profile**,
+một lượt mỗi cấu hình và chưa tách thời gian inference/DB/matching.
 
 | Lựa chọn/giới hạn Phase 1 | Vấn đề dễ quan sát và thuộc tính chất lượng | Hướng Phase 2 / cách đánh giá |
 |---|---|---|
@@ -191,7 +193,8 @@ inference/DB/matching. Middleware đã đổi sau commit đo; phải đo lại b
 
 Các hạn chế là đánh đổi của bản cơ bản. Ngoài baseline đã nêu, tác động về dữ liệu lớn,
 giả mạo và độ chính xác chưa được đo. Xem [số liệu gốc](docs/benchmark-phase1.md) và
-[phân tích cải tiến](docs/phase-2-improvements.md). Phase 2 phải đặt mục tiêu trước khi sửa,
+[phân tích cải tiến](docs/phase-2-improvements.md).
+Phase 2 phải đặt mục tiêu trước khi sửa,
 đo cả hai bản trên cùng cấu hình Kaggle CPU, cùng dữ liệu/model/workload; warm-up, lặp ít nhất
 ba lần, báo trung vị và độ dao động. Chỉ chấp nhận cải tiến khi đạt mục tiêu và vẫn đúng auth,
 ownership, matching, audit và lịch sử sau xóa. Hiện chưa có kết quả sau cải tiến.

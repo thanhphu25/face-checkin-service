@@ -1,96 +1,102 @@
 # Baseline Pha 1 — Kaggle CPU
 
+Notebook: [Face Check-in Benchmark trên Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark).
 Số liệu gốc: [benchmark/baseline-sqlite.csv](benchmark/baseline-sqlite.csv) và
 [benchmark/baseline-postgresql.csv](benchmark/baseline-postgresql.csv), kèm hai file metadata ghi
-phần cứng và toàn bộ tham số. Phương pháp đo và lý do chọn: [Phương pháp benchmark](architecture.md#benchmark).
+cấu hình máy và tham số tải. Phương pháp đo: [Phương pháp benchmark](architecture.md#benchmark).
 Cách chạy lại nằm tại [mục Kaggle](#7-chạy-lại-trên-kaggle-cpu).
 
 ## 1. Tóm tắt
 
-Đây là số liệu lịch sử tại commit `4affbd0` ngày 2026-09-22. Middleware hiện tại được cập nhật
-sau đó; chưa có lượt đo mới hay kết quả trước/sau cải tiến trong bộ dữ liệu này.
+Bộ số liệu hiện hành được đo ngày **27/10/2026** tại commit `3503b24`. CSV và metadata do người
+chạy cung cấp từ lượt notebook có thời điểm ghi kết quả SQLite **10:53:08** và PostgreSQL
+**10:55:26**, giờ Việt Nam (UTC+7). Đây là baseline Pha 1, chưa có kết quả trước/sau cải tiến Pha 2.
 
-- **Đường ghi (`POST /checkins`) là điểm nghẽn**: 4,82 req/s ở một client, trần khoảng 8,5 req/s.
-  Đường đọc nhanh hơn khoảng **34 lần** trên cùng máy.
-- CPU gần bão hòa khi tăng tải điểm danh; đường đọc dùng ít CPU hơn. Baseline này chưa phân rã
-  thời gian từng công đoạn, vì vậy chưa kết luận được tỷ trọng chi phí inference hay database.
+- Check-in đạt **6,27–6,42 req/s** ở một client và **9,66–10,14 req/s** ở concurrency 8.
+  CPU máy gần bão hòa khi tăng tải; chưa đo riêng chi phí inference, matching và database.
+- History đạt đỉnh ở concurrency 2: **142,43 req/s** với SQLite và **124,41 req/s** với PostgreSQL.
+- Cả **8.480 request đo** trên 16 tổ hợp backend/scenario/concurrency đều trả mã HTTP thành công.
 
 ## 2. Điều kiện đo
 
 | Hạng mục | Giá trị |
 |---|---|
-| Ngày đo | 2026-09-22 |
-| Commit | `4affbd0` |
-| Máy | Kaggle CPU notebook, 4 core, Linux 6.12.90, Python 3.12.13 |
+| Ngày đo | 2026-10-27 |
+| Commit | `3503b24` |
+| Máy | Kaggle CPU notebook, 4 core, Linux 6.18.55, glibc 2.39, Python 3.12.3 |
 | Server | Uvicorn 1 worker, không dùng Docker Compose |
 | Model | `buffalo_s` (InsightFace), CPU |
+| Dữ liệu | 1 face profile; cùng ảnh JPEG mẫu để đăng ký và check-in |
 | Tải mỗi mức | 60 request cho `checkin`, 1000 request cho `history` |
 | Concurrency | 1, 2, 4, 8 |
 | Warm-up | 5 request mỗi mức, không tính vào số liệu |
-| Lỗi | 0/16 mức đo có lỗi |
+| Khoảng nghỉ | 2 giây sau warm-up, trước khi đo |
+| Lỗi HTTP | 0/8.480 request; check-in trả `201`, history trả `200` |
 
 Hai cột CPU khác đơn vị: **CPU máy** là phần trăm của cả 4 core (tối đa 100), **CPU server** là phần
-trăm của một core cho riêng tiến trình Uvicorn (389% ≈ 3,89 core).
+trăm của một core cho riêng tiến trình Uvicorn (390% ≈ 3,9 core). CPU máy gồm cả client tạo tải và
+các tiến trình khác; CPU server không gồm tiến trình PostgreSQL.
 
 ## 3. `POST /api/v1/checkins` — đường ghi, có inference
 
 | Backend | Concurrency | Throughput (req/s) | p50 (ms) | p95 (ms) | p99 (ms) | CPU máy (%) | CPU server (% 1 core) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| SQLite | 1 | 4.82 | 207.0 | 226.9 | 240.9 | 79.2 | 309.6 |
-| SQLite | 2 | 7.13 | 274.7 | 315.8 | 346.4 | 95.0 | 371.1 |
-| SQLite | 4 | 7.36 | 546.0 | 641.2 | 801.0 | 99.4 | 389.0 |
-| SQLite | 8 | 8.54 | 919.8 | 1076.3 | 1116.2 | 99.7 | 389.3 |
-| PostgreSQL | 1 | 4.83 | 206.4 | 227.7 | 245.7 | 78.8 | 308.5 |
-| PostgreSQL | 2 | 6.63 | 294.8 | 350.4 | 407.3 | 97.3 | 379.8 |
-| PostgreSQL | 4 | 7.17 | 547.8 | 734.0 | 849.1 | 99.2 | 388.4 |
-| PostgreSQL | 8 | 8.46 | 938.1 | 1116.0 | 1268.5 | 99.7 | 387.9 |
+| SQLite | 1 | 6.272 | 159.61 | 172.06 | 181.08 | 76.1 | 295.8 |
+| SQLite | 2 | 8.385 | 227.64 | 275.99 | 288.25 | 95.1 | 370.9 |
+| SQLite | 4 | 8.771 | 454.85 | 554.64 | 617.77 | 99.3 | 387.5 |
+| SQLite | 8 | 9.655 | 827.0 | 977.07 | 1077.79 | 99.8 | 389.6 |
+| PostgreSQL | 1 | 6.424 | 154.85 | 167.79 | 173.81 | 76.1 | 295.4 |
+| PostgreSQL | 2 | 8.933 | 220.32 | 254.81 | 275.98 | 92.7 | 360.7 |
+| PostgreSQL | 4 | 8.947 | 444.92 | 634.82 | 731.44 | 99.7 | 390.8 |
+| PostgreSQL | 8 | 10.14 | 777.94 | 874.75 | 915.3 | 99.7 | 389.2 |
 
-Từ concurrency 1 lên 8, throughput chỉ tăng 77% (SQLite) và 75% (PostgreSQL), trong khi p50 tăng 4,4
-và 4,6 lần. Đây là dáng điệu của một hệ đã bão hoà: request xếp hàng chứ không được phục vụ nhanh
-hơn. CPU server đạt 389% trên 4 core — gần như không còn dư địa.
+Từ concurrency 1 lên 8, throughput tăng **53,9%** (SQLite) và **57,8%** (PostgreSQL), trong khi p50
+tăng **5,2** và **5,0 lần**. CPU máy ở concurrency 4–8 đạt 99,3–99,8%, CPU server khoảng 3,9 core.
+Tăng tải đồng thời làm độ trễ tăng mạnh, còn throughput tăng ít hơn; đây là dấu hiệu bão hòa CPU
+trong cấu hình đã đo.
 
 ## 4. `GET /api/v1/checkins` — đường đọc, có JWT
 
 | Backend | Concurrency | Throughput (req/s) | p50 (ms) | p95 (ms) | p99 (ms) | CPU máy (%) | CPU server (% 1 core) |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| SQLite | 1 | 162.86 | 6.0 | 6.6 | 7.8 | 28.8 | 75.1 |
-| SQLite | 2 | 180.43 | 10.8 | 13.1 | 14.3 | 39.3 | 108.6 |
-| SQLite | 4 | 123.21 | 32.3 | 40.7 | 47.2 | 46.1 | 140.3 |
-| SQLite | 8 | 81.61 | 97.7 | 112.3 | 140.9 | 48.6 | 163.7 |
-| PostgreSQL | 1 | 139.12 | 7.1 | 7.8 | 9.1 | 29.8 | 73.0 |
-| PostgreSQL | 2 | 168.70 | 11.6 | 13.2 | 16.3 | 43.3 | 106.1 |
-| PostgreSQL | 4 | 157.01 | 25.1 | 32.0 | 36.0 | 46.9 | 114.1 |
-| PostgreSQL | 8 | 150.27 | 50.5 | 73.5 | 102.8 | 50.3 | 121.1 |
+| SQLite | 1 | 125.745 | 7.84 | 8.87 | 9.94 | 29.3 | 76.5 |
+| SQLite | 2 | 142.427 | 13.59 | 16.4 | 18.12 | 39.3 | 107.2 |
+| SQLite | 4 | 106.683 | 37.14 | 47.92 | 56.73 | 45.8 | 132.6 |
+| SQLite | 8 | 73.185 | 109.33 | 128.04 | 177.45 | 47.8 | 153.6 |
+| PostgreSQL | 1 | 94.712 | 10.37 | 12.07 | 13.44 | 31.2 | 69.8 |
+| PostgreSQL | 2 | 124.405 | 15.75 | 18.18 | 20.29 | 45.6 | 103.9 |
+| PostgreSQL | 4 | 116.285 | 33.58 | 41.18 | 65.57 | 48.0 | 113.8 |
+| PostgreSQL | 8 | 107.658 | 70.38 | 104.8 | 131.2 | 53.5 | 126.7 |
 
-Cả hai backend đều đạt đỉnh ở concurrency 2. Sau đó SQLite tụt 54,8% so với đỉnh còn PostgreSQL chỉ
-giảm 10,9%. p50 của SQLite tăng 16,2 lần từ concurrency 1 đến 8, PostgreSQL tăng 7,1 lần.
-
-Ở concurrency 1, SQLite lại nhanh hơn 17,1% (162,9 so với 139,1 req/s) vì không có chi phí
-socket/protocol. Ưu thế đó biến mất ngay khi có tải đồng thời.
+Cả hai backend đạt đỉnh ở concurrency 2. Tới concurrency 8, throughput SQLite giảm **48,6%** so với
+đỉnh, PostgreSQL giảm **13,5%**. Ở mức này PostgreSQL đạt 107,658 req/s, SQLite đạt 73,185 req/s;
+p95 lần lượt là 104,8 và 128,04 ms. Các chênh lệch chỉ mô tả lượt đo này.
 
 ## 5. Nhận xét
 
-- Đường check-in có p50 khoảng 206–207 ms ở một client và CPU máy gần bão hòa khi tăng concurrency.
-  Throughput tăng ít hơn latency; đổi SQLite sang PostgreSQL không tạo khác biệt lớn ở workload này.
-  Đây là dấu hiệu cần khảo sát inference, chưa phải phép đo tách riêng chi phí model và DB.
-- Đường đọc đạt đỉnh ở concurrency 2. Tới concurrency 8, SQLite giảm 54,8% throughput so với đỉnh;
-  PostgreSQL giảm 10,9%. Kết quả chỉ mô tả cấu hình và dữ liệu đã đo.
-- Cần phân rã thời gian và đo tải hỗn hợp/tập profile lớn trước khi chọn cải tiến. Phương án và
-  cách đánh giá nằm tại [đề xuất Pha 2](phase-2-improvements.md).
+- Check-in có p50 khoảng 155–160 ms ở một client và CPU máy gần bão hòa khi tăng concurrency.
+  Chưa có phép đo tách riêng để kết luận tỷ trọng chi phí inference, matching hay database.
+- History có throughput cao hơn check-in; trong lượt này PostgreSQL giữ throughput tốt hơn SQLite
+  khi tăng từ concurrency 2 lên 8. Chưa đủ số lượt để kết luận ưu thế ổn định giữa hai backend.
+- Bộ đo đáp ứng phần kiểm thử tải trên Kaggle CPU của [Pha 1](2026.md). Nó chưa đánh giá khả năng
+  mở rộng tập profile, độ chính xác nhận diện hay triển khai nhiều worker.
+- Nếu triển khai Pha 2, cần đo lại cả bản gốc và phương án trong cùng điều kiện. Các hướng khảo sát
+  nằm tại [đề xuất Pha 2](phase-2-improvements.md).
 
 ## 6. Giới hạn của baseline
 
-- **Database chỉ có 1 face profile.** `CheckInService` duyệt toàn bộ profile mỗi lần check-in, nên
-  chi phí so khớp ở đây gần như bằng 0. Baseline này không nói gì về hành vi khi có hàng nghìn
-  profile.
-- **Bảng lịch sử nhỏ**: `history` đọc 50 dòng từ bảng khoảng 260 bản ghi do chính lượt `checkin`
-  sinh ra trước đó.
-- **Một worker, không Compose.** Con số này không phải hiệu năng của bản triển khai Compose thật;
-  nó là mốc để so sánh trước/sau trong cùng điều kiện.
-- **Một lượt đo mỗi cấu hình.** Không có nhiều lần lặp nên chênh lệch dưới ~7% giữa hai backend ở
-  `checkin` nên coi là nhiễu, không phải khác biệt thật.
-- **Kaggle có thể cấp máy khác nhau giữa các phiên.** Mỗi lượt đo so sánh phải đọc lại `cpu_count` và `platform`
-  trong metadata; khác cấu hình thì phải đo lại cả baseline.
+- **Database chỉ có 1 face profile.** `CheckInService` duyệt toàn bộ profile mỗi lần check-in;
+  baseline này chưa thể hiện chi phí khi có hàng nghìn profile.
+- **Bảng lịch sử nhỏ**: `history` đọc 50 dòng từ bảng khoảng 260 bản ghi do seed và lượt
+  `checkin` sinh ra trước đó.
+- **Một ảnh mẫu cho cả đăng ký và check-in.** HTTP thành công trên ảnh này chưa chứng minh khả
+  năng nhận diện đúng với ảnh chụp khác, người chưa đăng ký hoặc các điều kiện ánh sáng khác.
+- **Một worker, không Compose.** Kết quả chỉ đại diện cách chạy trực tiếp trong notebook.
+- **Một lượt cho mỗi cấu hình.** Chưa có số liệu đo lặp để báo trung vị và khoảng dao động.
+- **Chỉ 60 request check-in mỗi mức.** Với nearest-rank, p99 chính là giá trị lớn nhất của lượt;
+  ưu tiên đọc p50/p95 và coi p99 là thông tin tham khảo.
+- **Metadata chưa ghi model CPU, giới hạn CPU container và RAM.** `cpu_count`/`platform` giúp
+  đối chiếu nhưng chưa xác nhận đầy đủ cấu hình phần cứng giữa hai phiên.
 
 ## 7. Chạy lại trên Kaggle CPU
 
@@ -98,13 +104,19 @@ Notebook đặt Accelerator **None**, Internet **On**. Kaggle notebook không ch
 thực hiện migration, seed, Uvicorn một worker và benchmark trực tiếp. Ảnh mẫu được lấy qua
 `scripts/sample_images.py`; không cần đưa ảnh mặt vào repo.
 
-Các cell dưới đây lấy mã nguồn từ nhánh `main` trên GitHub để đo bản hiện tại. Đây là lượt đo mới;
-số liệu lịch sử trong tài liệu vẫn thuộc commit `4affbd0`. Ghi lại commit thực tế và lưu metadata
-riêng; khi so sánh Phase 2, chạy cả bản gốc lẫn phương án trên cùng máy.
+Các cell dưới đây lấy mã nguồn từ nhánh `main` trên GitHub để đo bản hiện tại. Mỗi lần chạy tạo
+một bộ số liệu mới; bảng hiện hành trong tài liệu thuộc commit `3503b24`, lượt ngày 27/10/2026.
+Ghi lại commit thực tế và lưu metadata riêng; khi so sánh Phase 2, chạy cả bản gốc lẫn phương án
+trên cùng máy.
+
+Mỗi lượt xác nhận nên bắt đầu bằng một phiên notebook mới và chạy các cell theo thứ tự để database
+trở về cùng trạng thái ban đầu. Dùng 60 request check-in, 1000 request history và warm-up 5
+cho baseline Pha 1; mỗi phiên chỉ đo một lượt cho mỗi backend.
 
 ### Cell 1 — lấy code và cài dependency
 
 ```python
+# Lấy mã nguồn hiện tại, ghi lại commit và cài dependency trong môi trường riêng.
 !git clone --branch main https://github.com/thanhphu25/face-checkin-service.git /kaggle/working/app
 %cd /kaggle/working/app
 !git rev-parse HEAD
@@ -117,6 +129,7 @@ riêng; khi so sánh Phase 2, chạy cả bản gốc lẫn phương án trên c
 Giá trị dưới đây chỉ sống trong session notebook và không được commit về repo.
 
 ```python
+# Tạo secret và mật khẩu ngẫu nhiên dùng riêng cho phiên benchmark.
 import os, secrets
 
 os.environ["JWT_SECRET"] = secrets.token_urlsafe(32)
@@ -124,9 +137,33 @@ os.environ["SEED_ADMIN_PASSWORD"] = secrets.token_urlsafe(24)
 os.environ["SEED_USER_PASSWORD"] = secrets.token_urlsafe(24)
 ```
 
-### Cell 3 — baseline SQLite
+### Cell 3 — hiển thị ảnh mẫu
+
+Ảnh hiển thị là đúng phần khuôn mặt đã cắt và mã hóa JPEG mà seed và benchmark sử dụng.
+Lệnh lấy ảnh chạy trong môi trường `uv` của dự án, còn notebook chỉ đọc file JPEG để hiển thị.
 
 ```python
+# Hiển thị đúng ảnh khuôn mặt mẫu dùng để đăng ký profile và gửi request check-in.
+import subprocess
+from IPython.display import Image, display
+
+sample_path = "/kaggle/working/sample-face.jpg"
+subprocess.run(
+    [
+        "uv", "run", "python", "-c",
+        "from pathlib import Path; "
+        "from scripts.sample_images import face_image_bytes; "
+        f"Path({sample_path!r}).write_bytes(face_image_bytes())",
+    ],
+    check=True,
+)
+display(Image(filename=sample_path))
+```
+
+### Cell 4 — baseline SQLite
+
+```python
+# Đo tải check-in và đọc lịch sử trên SQLite với bốn mức request đồng thời.
 !uv run python -m scripts.run_baseline \
     --backend sqlite \
     --port 8000 \
@@ -136,25 +173,26 @@ os.environ["SEED_USER_PASSWORD"] = secrets.token_urlsafe(24)
     --notes "kaggle-cpu sqlite phase1"
 ```
 
-### Cell 4 — PostgreSQL trong notebook
+### Cell 5 — PostgreSQL trong notebook
 
-Kaggle chạy dưới quyền root nên cài được PostgreSQL trực tiếp. Image Kaggle ngày 2026-09-22 cài
-cluster **14**, không phải 16, nên dùng `service postgresql start` để không phải gắn cứng số version;
-`pg_lsclusters` cho biết cluster thật nếu cần kiểm tra.
+Kaggle chạy dưới quyền root nên cài được PostgreSQL trực tiếp. Dùng `service postgresql start`
+để không phải gắn cứng số version; `pg_lsclusters` cho biết cluster thật nếu cần kiểm tra.
 
 Mật khẩu `bench-local-only` dưới đây là giá trị dùng một lần cho một PostgreSQL chỉ sống trong phiên
 notebook và chỉ nghe trên `127.0.0.1`. Không dùng lại nó ở bất kỳ môi trường nào khác.
 
 ```python
+# Cài và khởi động PostgreSQL rồi tạo tài khoản và database riêng cho benchmark.
 !apt-get -qq update && apt-get -qq install -y postgresql postgresql-contrib
 !service postgresql start
 !su - postgres -c "psql -c \"CREATE USER bench WITH PASSWORD 'bench-local-only';\""
 !su - postgres -c "psql -c 'CREATE DATABASE facecheckin_bench OWNER bench;'"
 ```
 
-### Cell 5 — baseline PostgreSQL
+### Cell 6 — baseline PostgreSQL
 
 ```python
+# Đo tải trên PostgreSQL với cùng ảnh mẫu và tham số tải như SQLite.
 !uv run python -m scripts.run_baseline \
     --backend postgresql \
     --database-url postgresql+psycopg://bench:bench-local-only@127.0.0.1:5432/facecheckin_bench \
@@ -165,14 +203,17 @@ notebook và chỉ nghe trên `127.0.0.1`. Không dùng lại nó ở bất kỳ
     --notes "kaggle-cpu postgresql phase1"
 ```
 
-### Cell 6 — lấy kết quả về
+### Cell 7 — kiểm tra và lấy kết quả về
 
 ```python
+# Liệt kê file kết quả và hiển thị cấu hình thực tế của cả hai lượt đo.
 !ls -l /kaggle/working/results
 !cat /kaggle/working/results/baseline-sqlite.metadata.json
+!cat /kaggle/working/results/baseline-postgresql.metadata.json
 ```
 
-Tải bốn file về và commit vào `docs/benchmark/`:
+Lưu version notebook kèm output các cell để giữ lại ảnh mẫu, log chạy và cấu hình đo.
+Tải bốn file về để đối chiếu trước khi cập nhật số liệu trong `docs/benchmark/`:
 `baseline-sqlite.csv`, `baseline-sqlite.metadata.json`, `baseline-postgresql.csv`,
 `baseline-postgresql.metadata.json`.
 

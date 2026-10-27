@@ -320,10 +320,13 @@ và drop riêng nó; không trỏ lệnh này vào database dev.
 
 ### Baseline Pha 1
 
-Đo ngày 2026-09-22 trên Kaggle CPU 4 core, commit `4affbd0`, Uvicorn một worker, ngoài Compose;
-16 mức đo trên SQLite/PostgreSQL đều không lỗi. PostgreSQL check-in đạt 4,83–8,46 req/s khi
-concurrency tăng từ 1 lên 8; p95 tăng từ 227,7 lên 1.116 ms. Baseline chỉ có một face profile;
-chưa đại diện cho dữ liệu lớn hoặc độ chính xác nhận diện, chưa đo lại middleware hiện tại.
+Đo ngày 2026-10-27 trên Kaggle CPU 4 core, commit `3503b24`, Uvicorn một worker, ngoài Compose.
+Notebook: [Face Check-in Benchmark trên Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark).
+Bộ hiện hành có thời điểm metadata 10:53:08 (SQLite) và 10:55:26 (PostgreSQL), giờ Việt Nam.
+Cả 8.480 request ở 16 mức đo trên SQLite/PostgreSQL đều không lỗi HTTP. PostgreSQL check-in đạt
+6,424–10,140 req/s khi concurrency tăng từ 1 lên 8; p95 tăng từ 167,79 lên 874,75 ms.
+Baseline chỉ có một face profile, một lượt mỗi cấu hình; chưa đại diện cho dữ liệu lớn hoặc
+độ chính xác nhận diện.
 
 [Báo cáo benchmark](benchmark-phase1.md) chứa bảng số liệu, giới hạn, các cell Kaggle và điều
 kiện so sánh trước/sau. Số liệu gốc nằm tại [docs/benchmark/](benchmark/).
@@ -340,7 +343,7 @@ và lý do lựa chọn database, JWT, embedding, hạ tầng và phương pháp
 | REST JSON, POST/GET/DELETE; đăng nhập và GET/POST có xác thực | Danh mục API ở trên, [API spec và test Swagger](api-spec.md), [OpenAPI](openapi.json) |
 | Xác thực tập trung qua middleware | [Quyết định auth](architecture.md#auth), test middleware/RBAC |
 | Đóng gói và dựng Docker | Mục 4, Dockerfile/Compose và CI |
-| Kiểm thử tải trên Kaggle CPU | [Kết quả và cách tái lập benchmark](benchmark-phase1.md), [CSV/metadata](benchmark/) |
+| Kiểm thử tải trên Kaggle CPU | [Notebook Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark), [kết quả và cách tái lập](benchmark-phase1.md), [CSV/metadata](benchmark/) |
 | Cải tiến có lý do và đánh giá trước/sau trên cùng phần cứng | [Đánh giá và hướng Pha 2](phase-2-improvements.md); phần kết quả sau cải tiến chưa có |
 
 ## 7. Biến môi trường và tài khoản mẫu
