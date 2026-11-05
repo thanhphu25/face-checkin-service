@@ -1,20 +1,5 @@
 # Face Check-in Service - Hệ thống điểm danh bằng khuôn mặt
 
-## Đối chiếu yêu cầu đề bài
-
-Bảng dưới chỉ ra nơi đáp ứng từng yêu cầu trong [đề bài](docs/sa-requirements-2026.md). Danh mục
-toàn bộ tài liệu nằm ở [phụ lục](#phụ-lục-danh-mục-tài-liệu).
-
-| Yêu cầu | Nơi thể hiện |
-|---|---|
-| README mô tả kiến trúc và đặc tả | Mục 1–4 của README |
-| Phân tầng API → nghiệp vụ → truy cập dữ liệu; Repository/ORM | Mục 3, [kiến trúc](docs/architecture.md), [ERD](docs/erd.md); import-linter và integration test |
-| REST JSON, POST/GET/DELETE, tài liệu OpenAPI/Swagger | Mục 4, [API spec](docs/api-spec.md), [OpenAPI JSON](docs/openapi.json) |
-| Đăng nhập; GET/POST cần xác thực qua middleware | Mục 4, [quyết định Auth](docs/architecture.md#auth); test middleware/RBAC |
-| Đóng gói Docker | Mục 7, [Dockerfile](Dockerfile), [compose.yaml](compose.yaml), [hướng dẫn vận hành](docs/running.md) |
-| Kiểm thử tải trên Kaggle CPU | Mục 5, [baseline](docs/phase-1-benchmark.md), [notebook Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark) |
-| Phase 2: cải tiến có lý do, đánh giá trước/sau trên cùng phần cứng | Mục 5, [phân tích cải tiến](docs/phase-2-improvements.md); chưa có kết quả sau cải tiến |
-
 ## 1. Đặc tả bài toán và mục tiêu
 
 **Bài toán:** một đơn vị cần điểm danh ghi nhận sự có mặt của người đã đăng ký thông qua ảnh từ thiết bị điểm danh. Khi một người điểm danh, thiết bị gửi ảnh về hệ thống, hệ thống cần xác định danh tính, lưu thời điểm và kết quả tra cứu.
@@ -191,6 +176,21 @@ uv run lint-imports
 ```
 
 Chi tiết bàn giao gồm mã nguồn, [migration](alembic/versions/), [seed](scripts/seed.py), [Dockerfile](Dockerfile), [Docker Compose](compose.yaml), [OpenAPI JSON](docs/openapi.json), [API spec](docs/api-spec.md), [ERD](docs/erd.md), [kiến trúc](docs/architecture.md), [baseline](docs/phase-1-benchmark.md) và [hướng dẫn vận hành](docs/running.md).
+
+## Đối chiếu yêu cầu đề bài
+
+Bảng dưới chỉ ra nơi đáp ứng từng yêu cầu trong [đề bài](docs/sa-requirements-2026.md). Danh mục
+toàn bộ tài liệu nằm ở [phụ lục](#phụ-lục-danh-mục-tài-liệu).
+
+| Yêu cầu | Nơi thể hiện |
+|---|---|
+| README mô tả kiến trúc và đặc tả | Mục 1–4 của README |
+| Phân tầng API → nghiệp vụ → truy cập dữ liệu; Repository/ORM | Mục 3, [kiến trúc](docs/architecture.md), [ERD](docs/erd.md); import-linter và integration test |
+| REST JSON, POST/GET/DELETE, tài liệu OpenAPI/Swagger | Mục 4, [API spec](docs/api-spec.md), [OpenAPI JSON](docs/openapi.json) |
+| Đăng nhập; GET/POST cần xác thực qua middleware | Mục 4, [quyết định Auth](docs/architecture.md#auth); test middleware/RBAC |
+| Đóng gói Docker | Mục 7, [Dockerfile](Dockerfile), [compose.yaml](compose.yaml), [hướng dẫn vận hành](docs/running.md) |
+| Kiểm thử tải trên Kaggle CPU | Mục 5, [baseline](docs/phase-1-benchmark.md), [notebook Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark) |
+| Phase 2: cải tiến có lý do, đánh giá trước/sau trên cùng phần cứng | Mục 5, [phân tích cải tiến](docs/phase-2-improvements.md); chưa có kết quả sau cải tiến |
 
 ## Phụ lục: Danh mục tài liệu
 
