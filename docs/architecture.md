@@ -194,11 +194,11 @@ lặng trước khi đo CPU. Kết quả lưu CSV kèm metadata. Notebook:
 **Lý do và đánh đổi:** Kaggle notebook không chạy Docker; kết quả chỉ đại diện cấu hình đã đo.
 Baseline có một profile nên chưa phản ánh dữ liệu lớn và không chứng minh độ chính xác nhận diện.
 Bộ hiện hành đo ngày 27/10/2026 tại commit `3503b24`, 8.480 request không lỗi HTTP;
-mỗi cấu hình có một lượt đo. Chi tiết nằm trong [báo cáo benchmark](benchmark-phase1.md).
+mỗi cấu hình có một lượt đo. Chi tiết nằm trong [báo cáo benchmark](phase-1-benchmark.md).
 
 **Khi cần xem lại:** đổi phần cứng, dữ liệu, workload hoặc tham số phải đo lại baseline tương ứng.
 CI kiểm tra unit/API/integration, phân tầng, Docker và Compose; test model thật chạy riêng.
 
 Chi tiết: [ERD](erd.md), [API](api-spec.md), [cách chạy](running.md),
-[kết quả baseline](benchmark-phase1.md), [cách đo](benchmark-phase1.md#7-chạy-lại-trên-kaggle-cpu),
+[kết quả baseline](phase-1-benchmark.md), [cách đo](phase-1-benchmark.md#7-chạy-lại-trên-kaggle-cpu),
 [hướng cải tiến](phase-2-improvements.md).

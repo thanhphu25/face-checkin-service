@@ -6,7 +6,7 @@ bước seed có thêm khối PowerShell.
 
 Tài liệu này chỉ chứa thao tác. Kiến trúc và lý do thiết kế ở [architecture.md](architecture.md);
 endpoint, quyền và mã lỗi ở [api-spec.md](api-spec.md); số liệu baseline ở
-[benchmark-phase1.md](benchmark-phase1.md).
+[phase-1-benchmark.md](phase-1-benchmark.md).
 
 ## Thứ tự thực hiện
 
@@ -282,9 +282,9 @@ riêng nó; không trỏ lệnh này vào database dev.
 
 | Mục đích | Hướng dẫn |
 |---|---|
-| Thử harness trên máy thường (~1 phút, không dùng làm baseline) | [Kiểm tra harness không cần Kaggle](benchmark-phase1.md#kiểm-tra-harness-không-cần-kaggle) |
-| Chạy lại baseline trên Kaggle CPU | [Chạy lại trên Kaggle CPU](benchmark-phase1.md#7-chạy-lại-trên-kaggle-cpu) |
-| So sánh trước/sau cho Phase 2 | [Đọc kết quả và so sánh trước/sau](benchmark-phase1.md#8-đọc-kết-quả-và-so-sánh-trướcsau) |
+| Thử harness trên máy thường (~1 phút, không dùng làm baseline) | [Kiểm tra harness không cần Kaggle](phase-1-benchmark.md#kiểm-tra-harness-không-cần-kaggle) |
+| Chạy lại baseline trên Kaggle CPU | [Chạy lại trên Kaggle CPU](phase-1-benchmark.md#7-chạy-lại-trên-kaggle-cpu) |
+| So sánh trước/sau cho Phase 2 | [Đọc kết quả và so sánh trước/sau](phase-1-benchmark.md#8-đọc-kết-quả-và-so-sánh-trướcsau) |
 
 ## Tham chiếu cấu hình
 

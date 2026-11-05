@@ -4,12 +4,12 @@
 
 | Bạn là | Đọc theo thứ tự | Để nắm được |
 |---|---|---|
-| Người review/chấm | README → [kiến trúc](docs/architecture.md) → [ERD](docs/erd.md) → [API spec](docs/api-spec.md) → [baseline](docs/benchmark-phase1.md) | Bài toán, thiết kế, dữ liệu, contract API và kết quả đo |
+| Người review/chấm | README → [kiến trúc](docs/architecture.md) → [ERD](docs/erd.md) → [API spec](docs/api-spec.md) → [baseline](docs/phase-1-benchmark.md) | Bài toán, thiết kế, dữ liệu, contract API và kết quả đo |
 | Người dựng và vận hành | README mục 7 → [hướng dẫn vận hành](docs/running.md) | Dựng stack từ máy sạch, seed, kiểm tra, cập nhật, xử lý sự cố |
 | Người tích hợp API/thiết bị | [API spec](docs/api-spec.md) → [OpenAPI JSON](docs/openapi.json) | Endpoint, quyền, mã lỗi và kịch bản thử trên Swagger |
-| Nhóm làm Phase 2 | [Baseline](docs/benchmark-phase1.md) → [phân tích cải tiến](docs/phase-2-improvements.md) → [kiến trúc](docs/architecture.md) | Số liệu gốc, vấn đề đã xác định và cách đo trước/sau |
+| Nhóm làm Phase 2 | [Baseline](docs/phase-1-benchmark.md) → [phân tích cải tiến](docs/phase-2-improvements.md) → [kiến trúc](docs/architecture.md) | Số liệu gốc, vấn đề đã xác định và cách đo trước/sau |
 
-Đối chiếu với [đề bài](docs/2026.md):
+Đối chiếu với [đề bài](docs/sa-requirements-2026.md):
 
 | Yêu cầu | Nơi thể hiện |
 |---|---|
@@ -18,7 +18,7 @@
 | REST JSON, POST/GET/DELETE, tài liệu OpenAPI/Swagger | Mục 4, [API spec](docs/api-spec.md), [OpenAPI JSON](docs/openapi.json) |
 | Đăng nhập; GET/POST cần xác thực qua middleware | Mục 4, [quyết định Auth](docs/architecture.md#auth); test middleware/RBAC |
 | Đóng gói Docker | Mục 7, [Dockerfile](Dockerfile), [compose.yaml](compose.yaml), [hướng dẫn vận hành](docs/running.md) |
-| Kiểm thử tải trên Kaggle CPU | Mục 5, [baseline](docs/benchmark-phase1.md), [notebook Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark) |
+| Kiểm thử tải trên Kaggle CPU | Mục 5, [baseline](docs/phase-1-benchmark.md), [notebook Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark) |
 | Phase 2: cải tiến có lý do, đánh giá trước/sau trên cùng phần cứng | Mục 5, [phân tích cải tiến](docs/phase-2-improvements.md); chưa có kết quả sau cải tiến |
 
 ## 1. Đặc tả bài toán và mục tiêu
@@ -133,7 +133,7 @@ docs/               # API JSON, ERD, kiến trúc, baseline, vận hành
 
 ## 5. Vấn đề Phase 1 và hướng cải tiến Phase 2
 
-Baseline Phase 1 với Kaggle CPU 4 core, Uvicorn một worker, ngoài Compose. Notebook: [Face Check-in Benchmark trên Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark). Kết quả đo `POST /api/v1/checkins` với PostgreSQL, chi tiết ở [tài liệu benchmark](docs/benchmark-phase1.md):
+Baseline Phase 1 với Kaggle CPU 4 core, Uvicorn một worker, ngoài Compose. Notebook: [Face Check-in Benchmark trên Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark). Kết quả đo `POST /api/v1/checkins` với PostgreSQL, chi tiết ở [tài liệu benchmark](docs/phase-1-benchmark.md):
 
 | Request đồng thời | Throughput (request/giây) | p95 (ms) | CPU toàn máy |
 |---:|---:|---:|---:|
@@ -196,4 +196,4 @@ uv run ruff format --check .
 uv run lint-imports
 ```
 
-Chi tiết bàn giao gồm mã nguồn, [migration](alembic/versions/), [seed](scripts/seed.py), [Dockerfile](Dockerfile), [Docker Compose](compose.yaml), [OpenAPI JSON](docs/openapi.json), [API spec](docs/api-spec.md), [ERD](docs/erd.md), [kiến trúc](docs/architecture.md), [baseline](docs/benchmark-phase1.md) và [hướng dẫn vận hành](docs/running.md).
+Chi tiết bàn giao gồm mã nguồn, [migration](alembic/versions/), [seed](scripts/seed.py), [Dockerfile](Dockerfile), [Docker Compose](compose.yaml), [OpenAPI JSON](docs/openapi.json), [API spec](docs/api-spec.md), [ERD](docs/erd.md), [kiến trúc](docs/architecture.md), [baseline](docs/phase-1-benchmark.md) và [hướng dẫn vận hành](docs/running.md).
