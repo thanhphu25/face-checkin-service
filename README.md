@@ -1,15 +1,9 @@
 # Face Check-in Service - Hệ thống điểm danh bằng khuôn mặt
 
-## Hướng dẫn đọc tài liệu
+## Đối chiếu yêu cầu đề bài
 
-| Bạn là | Đọc theo thứ tự | Để nắm được |
-|---|---|---|
-| Người review/chấm | README → [kiến trúc](docs/architecture.md) → [ERD](docs/erd.md) → [API spec](docs/api-spec.md) → [baseline](docs/phase-1-benchmark.md) | Bài toán, thiết kế, dữ liệu, contract API và kết quả đo |
-| Người dựng và vận hành | README mục 7 → [hướng dẫn vận hành](docs/running.md) | Dựng stack từ máy sạch, seed, kiểm tra, cập nhật, xử lý sự cố |
-| Người tích hợp API/thiết bị | [API spec](docs/api-spec.md) → [OpenAPI JSON](docs/openapi.json) | Endpoint, quyền, mã lỗi và kịch bản thử trên Swagger |
-| Nhóm làm Phase 2 | [Baseline](docs/phase-1-benchmark.md) → [phân tích cải tiến](docs/phase-2-improvements.md) → [kiến trúc](docs/architecture.md) | Số liệu gốc, vấn đề đã xác định và cách đo trước/sau |
-
-Đối chiếu với [đề bài](docs/sa-requirements-2026.md):
+Bảng dưới chỉ ra nơi đáp ứng từng yêu cầu trong [đề bài](docs/sa-requirements-2026.md). Danh mục
+toàn bộ tài liệu nằm ở [phụ lục](#phụ-lục-danh-mục-tài-liệu).
 
 | Yêu cầu | Nơi thể hiện |
 |---|---|
@@ -197,3 +191,18 @@ uv run lint-imports
 ```
 
 Chi tiết bàn giao gồm mã nguồn, [migration](alembic/versions/), [seed](scripts/seed.py), [Dockerfile](Dockerfile), [Docker Compose](compose.yaml), [OpenAPI JSON](docs/openapi.json), [API spec](docs/api-spec.md), [ERD](docs/erd.md), [kiến trúc](docs/architecture.md), [baseline](docs/phase-1-benchmark.md) và [hướng dẫn vận hành](docs/running.md).
+
+## Phụ lục: Danh mục tài liệu
+
+| Tài liệu | Nội dung | Đọc khi |
+|---|---|---|
+| [README](README.md) | Bài toán, nghiệp vụ, kiến trúc tổng quát, API chính, baseline, tech stack và cách chạy nhanh | Bắt đầu tìm hiểu dự án |
+| [Đề bài](docs/sa-requirements-2026.md) | Yêu cầu Phase 1 và gợi ý Phase 2 của môn học | Đối chiếu tiêu chí đánh giá |
+| [Kiến trúc](docs/architecture.md) | Phân tầng, các luồng xử lý chính và quyết định thiết kế (database, auth, embedding, hạ tầng, benchmark) | Review thiết kế hoặc trước khi sửa code |
+| [ERD](docs/erd.md) | Ba bảng dữ liệu, ràng buộc, index, cách lưu embedding và quy ước persistence | Làm việc với database hoặc migration |
+| [API spec](docs/api-spec.md) | Quy ước chung, schema response, quyền, mã lỗi và kịch bản kiểm thử trên Swagger | Tích hợp API, thiết bị điểm danh hoặc kiểm thử thủ công |
+| [OpenAPI JSON](docs/openapi.json) | Contract máy đọc được, sinh từ ứng dụng | Sinh client hoặc kiểm tra schema |
+| [Hướng dẫn vận hành](docs/running.md) | Runbook dựng stack từ máy sạch, seed, kiểm tra, cập nhật, xử lý sự cố, dọn dữ liệu và chạy test | Dựng, vận hành hoặc bàn giao hệ thống |
+| [Baseline Phase 1](docs/phase-1-benchmark.md) | Điều kiện đo, số liệu Kaggle CPU, giới hạn và cách chạy lại hoặc so sánh trước/sau | Đánh giá hiệu năng hoặc chuẩn bị đo Phase 2 |
+| [Số liệu gốc](docs/benchmark/) | CSV và metadata của lượt đo baseline | Kiểm tra lại số liệu trong báo cáo |
+| [Phân tích cải tiến Phase 2](docs/phase-2-improvements.md) | Vấn đề V01–V09, hướng thử nghiệm, tiêu chí và quy trình đánh giá | Chọn và triển khai cải tiến Phase 2 |
