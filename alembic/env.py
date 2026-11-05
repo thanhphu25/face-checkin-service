@@ -11,8 +11,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# URL lấy từ .env, không lấy từ alembic.ini — một nguồn cấu hình duy nhất.
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+# Settings lấy URL từ biến môi trường hoặc .env, thay cho giá trị trong alembic.ini.
+# ConfigParser dùng % để nội suy; escape tại đây để giữ nguyên URL khi đọc lại.
+config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 
