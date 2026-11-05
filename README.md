@@ -1,6 +1,5 @@
 # Face Check-in Service - Hệ thống điểm danh bằng khuôn mặt
 
-
 ## 1. Đặc tả bài toán và mục tiêu
 
 **Bài toán:** một đơn vị cần điểm danh ghi nhận sự có mặt của người đã đăng ký thông qua ảnh từ thiết bị điểm danh. Khi một người điểm danh, thiết bị gửi ảnh về hệ thống, hệ thống cần xác định danh tính, lưu thời điểm và kết quả tra cứu.
@@ -113,7 +112,7 @@ docs/               # API JSON, ERD, kiến trúc, baseline, vận hành
 
 ## 5. Vấn đề Phase 1 và hướng cải tiến Phase 2
 
-Baseline Phase 1 với Kaggle CPU 4 core, Uvicorn một worker, ngoài Compose. Notebook: [Face Check-in Benchmark trên Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark). Kết quả đo `POST /api/v1/checkins` với PostgreSQL, chi tiết ở [tài liệu benchmark](docs/benchmark-phase1.md):
+Baseline Phase 1 với Kaggle CPU 4 core, Uvicorn một worker, ngoài Compose. Notebook: [Face Check-in Benchmark trên Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark). Kết quả đo `POST /api/v1/checkins` với PostgreSQL, chi tiết ở [tài liệu benchmark](docs/phase-1-benchmark.md):
 
 | Request đồng thời | Throughput (request/giây) | p95 (ms) | CPU toàn máy |
 |---:|---:|---:|---:|
@@ -176,4 +175,34 @@ uv run ruff format --check .
 uv run lint-imports
 ```
 
-Chi tiết bàn giao gồm mã nguồn, [migration](alembic/versions/), [seed](scripts/seed.py), [Dockerfile](Dockerfile), [Docker Compose](compose.yaml), [OpenAPI JSON](docs/openapi.json), [API spec](docs/api-spec.md), [ERD](docs/erd.md), [kiến trúc](docs/architecture.md), [baseline](docs/benchmark-phase1.md) và [hướng dẫn vận hành](docs/running.md).
+Chi tiết bàn giao gồm mã nguồn, [migration](alembic/versions/), [seed](scripts/seed.py), [Dockerfile](Dockerfile), [Docker Compose](compose.yaml), [OpenAPI JSON](docs/openapi.json), [API spec](docs/api-spec.md), [ERD](docs/erd.md), [kiến trúc](docs/architecture.md), [baseline](docs/phase-1-benchmark.md) và [hướng dẫn vận hành](docs/running.md).
+
+## Đối chiếu yêu cầu đề bài
+
+Bảng dưới chỉ ra nơi đáp ứng từng yêu cầu trong [đề bài](docs/sa-requirements-2026.md). Danh mục
+toàn bộ tài liệu nằm ở [phụ lục](#phụ-lục-danh-mục-tài-liệu).
+
+| Yêu cầu | Nơi thể hiện |
+|---|---|
+| README mô tả kiến trúc và đặc tả | Mục 1–4 của README |
+| Phân tầng API → nghiệp vụ → truy cập dữ liệu; Repository/ORM | Mục 3, [kiến trúc](docs/architecture.md), [ERD](docs/erd.md); import-linter và integration test |
+| REST JSON, POST/GET/DELETE, tài liệu OpenAPI/Swagger | Mục 4, [API spec](docs/api-spec.md), [OpenAPI JSON](docs/openapi.json) |
+| Đăng nhập; GET/POST cần xác thực qua middleware | Mục 4, [quyết định Auth](docs/architecture.md#auth); test middleware/RBAC |
+| Đóng gói Docker | Mục 7, [Dockerfile](Dockerfile), [compose.yaml](compose.yaml), [hướng dẫn vận hành](docs/running.md) |
+| Kiểm thử tải trên Kaggle CPU | Mục 5, [baseline](docs/phase-1-benchmark.md), [notebook Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark) |
+| Phase 2: cải tiến có lý do, đánh giá trước/sau trên cùng phần cứng | Mục 5, [phân tích cải tiến](docs/phase-2-improvements.md); chưa có kết quả sau cải tiến |
+
+## Phụ lục: Danh mục tài liệu
+
+| Tài liệu | Nội dung | Đọc khi |
+|---|---|---|
+| [README](README.md) | Bài toán, nghiệp vụ, kiến trúc tổng quát, API chính, baseline, tech stack và cách chạy nhanh | Bắt đầu tìm hiểu dự án |
+| [Đề bài](docs/sa-requirements-2026.md) | Yêu cầu Phase 1 và gợi ý Phase 2 của môn học | Đối chiếu tiêu chí đánh giá |
+| [Kiến trúc](docs/architecture.md) | Phân tầng, các luồng xử lý chính và quyết định thiết kế (database, auth, embedding, hạ tầng, benchmark) | Review thiết kế hoặc trước khi sửa code |
+| [ERD](docs/erd.md) | Ba bảng dữ liệu, ràng buộc, index, cách lưu embedding và quy ước persistence | Làm việc với database hoặc migration |
+| [API spec](docs/api-spec.md) | Quy ước chung, schema response, quyền, mã lỗi và kịch bản kiểm thử trên Swagger | Tích hợp API, thiết bị điểm danh hoặc kiểm thử thủ công |
+| [OpenAPI JSON](docs/openapi.json) | Contract máy đọc được, sinh từ ứng dụng | Sinh client hoặc kiểm tra schema |
+| [Hướng dẫn vận hành](docs/running.md) | Runbook dựng stack từ máy sạch, seed, kiểm tra, cập nhật, xử lý sự cố, dọn dữ liệu và chạy test | Dựng, vận hành hoặc bàn giao hệ thống |
+| [Baseline Phase 1](docs/phase-1-benchmark.md) | Điều kiện đo, số liệu Kaggle CPU, giới hạn và cách chạy lại hoặc so sánh trước/sau | Đánh giá hiệu năng hoặc chuẩn bị đo Phase 2 |
+| [Số liệu gốc](docs/benchmark/) | CSV và metadata của lượt đo baseline | Kiểm tra lại số liệu trong báo cáo |
+| [Phân tích cải tiến Phase 2](docs/phase-2-improvements.md) | Vấn đề V01–V09, hướng thử nghiệm, tiêu chí và quy trình đánh giá | Chọn và triển khai cải tiến Phase 2 |

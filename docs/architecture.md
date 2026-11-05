@@ -3,6 +3,10 @@
 Tài liệu mô tả kiến trúc, các luồng xử lý chính và các quyết định đã chấp nhận của backend điểm
 danh bằng khuôn mặt. Hệ thống là một dịch vụ FastAPI, sử dụng PostgreSQL và InsightFace trên CPU.
 
+Phạm vi Phase 1: mỗi request điểm danh là một sự kiện độc lập; chưa có quản lý ca làm, tính công,
+check-out hay chống điểm danh trùng. Compose chỉ chạy `app`, `migrate` và `postgres`, không có hạ
+tầng dự phòng.
+
 ## Kiến trúc tổng quát
 
 ```mermaid
@@ -175,7 +179,7 @@ minh nhu cầu. Migration chạy một lần trước app để tránh các repl
 Khóa dependency giúp tái lập package; build hai giai đoạn và loại dữ liệu phụ giảm thành phần
 trong image chạy. Base image hiện chưa khóa theo digest, nên không bảo đảm image giống hệt ở mọi
 lần build. Tải model lúc dùng giúp tách model khỏi image nhưng tạo độ trễ lần đầu và yêu cầu
-Internet khi cache trống. Cách build, chuẩn bị model và xử lý lỗi nằm ở [hướng dẫn vận hành](running.md#4-chạy-từ-máy-sạch-bằng-docker-compose).
+Internet khi cache trống. Cách build, chuẩn bị model và xử lý lỗi nằm ở [hướng dẫn vận hành](running.md).
 
 **Khi cần xem lại:** có nhu cầu mở rộng hoặc phép đo chứng minh lợi ích. Hạ tầng mới cần đi cùng
 kiểm thử hành vi lỗi, tính nhất quán và benchmark trước/sau.
@@ -190,11 +194,11 @@ lặng trước khi đo CPU. Kết quả lưu CSV kèm metadata. Notebook:
 **Lý do và đánh đổi:** Kaggle notebook không chạy Docker; kết quả chỉ đại diện cấu hình đã đo.
 Baseline có một profile nên chưa phản ánh dữ liệu lớn và không chứng minh độ chính xác nhận diện.
 Bộ hiện hành đo ngày 27/10/2026 tại commit `3503b24`, 8.480 request không lỗi HTTP;
-mỗi cấu hình có một lượt đo. Chi tiết nằm trong [báo cáo benchmark](benchmark-phase1.md).
+mỗi cấu hình có một lượt đo. Chi tiết nằm trong [báo cáo benchmark](phase-1-benchmark.md).
 
 **Khi cần xem lại:** đổi phần cứng, dữ liệu, workload hoặc tham số phải đo lại baseline tương ứng.
 CI kiểm tra unit/API/integration, phân tầng, Docker và Compose; test model thật chạy riêng.
 
 Chi tiết: [ERD](erd.md), [API](api-spec.md), [cách chạy](running.md),
-[kết quả baseline](benchmark-phase1.md), [cách đo](benchmark-phase1.md#7-chạy-lại-trên-kaggle-cpu),
+[kết quả baseline](phase-1-benchmark.md), [cách đo](phase-1-benchmark.md#7-chạy-lại-trên-kaggle-cpu),
 [hướng cải tiến](phase-2-improvements.md).

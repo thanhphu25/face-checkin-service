@@ -1,6 +1,6 @@
 # Đánh giá và hướng cải tiến Pha 2
 
-Theo [đề bài](2026.md), cải tiến cần xuất phát từ đánh giá hệ thống, có lý do và đo trước/sau trên
+Theo [đề bài](sa-requirements-2026.md), cải tiến cần xuất phát từ đánh giá hệ thống, có lý do và đo trước/sau trên
 một cấu hình phần cứng cố định. Các hướng dưới đây là đề xuất, chưa phải kết quả đã triển khai.
 Hiện chưa có số liệu chứng minh cải thiện so với baseline Pha 1.
 
@@ -16,7 +16,7 @@ hoặc tải hỗn hợp.
 Code hiện tại dùng SQLAlchemy đồng bộ, InsightFace CPU, matching toàn bộ profile và chưa có cache.
 Trước khi đánh giá phương án, cần đo lặp cả bản gốc và bản cải tiến trên cùng cấu hình;
 chưa có kết quả trước/sau Pha 2.
-Xem [số liệu, giới hạn và cách chạy](benchmark-phase1.md), [kiến trúc](architecture.md).
+Xem [số liệu, giới hạn và cách chạy](phase-1-benchmark.md), [kiến trúc](architecture.md).
 
 ## 2. Vấn đề, phương án và tiêu chí đánh giá
 
@@ -57,7 +57,7 @@ Nguồn đối chiếu: [matching](../app/services/check_in_service.py), [depend
    Chấp nhận khi đạt mục tiêu, cải thiện vượt dao động đo và giữ đúng nghiệp vụ.
 6. Cập nhật quyết định trong kiến trúc, API/OpenAPI và hướng dẫn chạy/migration nếu có thay đổi.
 
-Điều kiện và lệnh đo chi tiết nằm tại [benchmark](benchmark-phase1.md#8-đọc-kết-quả-và-so-sánh-trướcsau).
+Điều kiện và lệnh đo chi tiết nằm tại [benchmark](phase-1-benchmark.md#8-đọc-kết-quả-và-so-sánh-trướcsau).
 
 ## 4. Nội dung báo cáo kết quả khi triển khai
 

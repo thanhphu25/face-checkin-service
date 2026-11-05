@@ -1,227 +1,119 @@
 # Hướng dẫn vận hành Face Check-in Service
 
-Backend điểm danh bằng khuôn mặt dùng FastAPI, SQLAlchemy/Alembic, PostgreSQL và InsightFace. Tài
-liệu này dành cho người nhận project mà không cần hỏi lại tác giả.
+Runbook dựng, kiểm tra, cập nhật và dọn dẹp stack từ một máy sạch mà không cần hỏi lại tác giả.
+Mọi lệnh chạy từ thư mục gốc repo. Khối `bash` dùng cho Linux/macOS hoặc Git Bash trên Windows;
+bước seed có thêm khối PowerShell.
 
-Trạng thái hiện tại: Pha 1 đã có Repository, API, JWT/RBAC, image Docker, Compose, integration test,
-seed dữ liệu mẫu tái lập và benchmark baseline trên Kaggle CPU. Số liệu và giới hạn được ghi
-trong [báo cáo baseline](benchmark-phase1.md).
+Tài liệu này chỉ chứa thao tác. Kiến trúc và lý do thiết kế ở [architecture.md](architecture.md);
+endpoint, quyền và mã lỗi ở [api-spec.md](api-spec.md); số liệu baseline ở
+[phase-1-benchmark.md](phase-1-benchmark.md).
 
-Yêu cầu gốc tại [docs/2026.md](2026.md). Tài liệu hiện tại mô tả bản Pha 1 và các hướng cải
-tiến Pha 2; chưa có kết quả đo trước/sau cho một cải tiến đã triển khai.
+## Thứ tự thực hiện
 
-## 1. Nghiệp vụ và phạm vi
+| Bước | Việc cần làm | Dấu hiệu hoàn thành |
+|---:|---|---|
+| 1 | [Chuẩn bị máy](#yêu-cầu) | `docker compose version` chạy được |
+| 2 | [Clone và cấu hình](#clone-và-cấu-hình) | `.env` đã có `JWT_SECRET` và `POSTGRES_PASSWORD` riêng |
+| 3 | [Build và khởi động](#build-và-khởi-động) | `migrate` thoát với mã 0, `app` ở trạng thái healthy |
+| 4 | [Chuẩn bị model](#chuẩn-bị-model) | Lệnh kiểm tra in ra `Model ready` |
+| 5 | [Seed dữ liệu mẫu](#seed-dữ-liệu-mẫu) | Có tài khoản admin/user mẫu và đã lưu mật khẩu |
+| 6 | [Kiểm tra sau khi dựng](#kiểm-tra-sau-khi-dựng) | Login trả JWT, kịch bản Swagger cho kết quả đúng |
 
-Một user có thể đăng ký nhiều hồ sơ khuôn mặt. Khi một ảnh được gửi tới máy chấm công, hệ thống sinh
-embedding, so khớp với các profile cùng model/dimension và ghi lại kết quả `success`, `unmatched`
-hoặc `no_face`. Ảnh hỏng, nhiều mặt hoặc lỗi sinh embedding bị từ chối và chưa tạo record.
+Dùng khi cần: [cập nhật code hoặc migration](#cập-nhật-code-hoặc-migration),
+[xử lý sự cố](#xử-lý-sự-cố), [dừng và dọn dữ liệu](#dừng-và-dọn-dữ-liệu),
+[test và quality gate](#test-và-quality-gate), [benchmark](#benchmark),
+[tham chiếu cấu hình](#tham-chiếu-cấu-hình).
 
-Admin tạo/xóa tài khoản và quản lý dữ liệu toàn hệ thống. User đăng nhập, đăng ký hồ sơ mặt và
-xem dữ liệu của mình. Thiết bị điểm danh gửi ảnh tới API công khai để xác định người tương ứng.
-Mỗi request là một sự kiện; chưa có quản lý ca làm, tính công, check-out hay chống điểm danh trùng.
-
-| Pha | Trong phạm vi | Ngoài phạm vi hiện tại |
-|---|---|---|
-| Pha 1 | CRUD `User`/`FaceProfile`/`CheckInRecord`, InsightFace CPU, JWT/RBAC, migration, Docker/Compose và baseline trên Kaggle CPU | refresh token, liveness, cache, async DB, ANN index |
-| Pha 2 | Chỉ chọn 2–3 cải tiến sau khi đo lại baseline | Không mặc định Redis cache, pgvector/FAISS hay multi-worker trước khi có số liệu |
-
-Compose Pha 1 chỉ chạy `app`, `migrate` và `postgres`; không dựng hạ tầng dự phòng.
-Các vấn đề chính, bằng chứng và cách đánh giá cải tiến được tổng hợp tại
-[đề xuất Pha 2](phase-2-improvements.md).
-
-## 2. Kiến trúc
-
-```text
-Client / Swagger
-       | HTTP + JSON/multipart, OAuth2 bearer
-       v
-API layer             app/api, app/schemas
-       | gọi use case, ánh xạ lỗi/DTO
-       v
-Service layer         app/services — Python thuần
-       | chỉ phụ thuộc domain port
-       v
-Repository ports      app/domain
-       ^
-       | implements + ORM<->domain mapping
-SQLAlchemy adapters   app/repositories, app/models
-       |
-       v
-PostgreSQL (Compose/prod) / SQLite (test nhanh)
-
-FaceEmbedder port <-- app/ml/insightface_embedder.py (buffalo_s, CPU)
-```
-
-Trách nhiệm chính:
-
-- `AuthenticationMiddleware` xác minh Bearer JWT và tải user hiện hành một lần/request.
-  Dependency lấy user từ `request.user`, kiểm tra quyền và khai báo OAuth2 cho Swagger.
-- API đọc upload, gọi Service và chuyển domain error sang HTTP.
-- Service chứa matching, role/ownership và use case; không import FastAPI, SQLAlchemy, ORM hay
-  Pydantic schema. `import-linter` cưỡng chế ranh giới này.
-- Repository là nơi duy nhất chuyển ORM <-> domain. Middleware đóng session đọc user trước khi
-  gọi endpoint; session nghiệp vụ theo request, Repository `flush()`, dependency commit/rollback.
-- Alembic là nguồn schema duy nhất. Compose chạy một service `migrate` trước app, không dùng
-  `Base.metadata.create_all()`.
-
-Đọc sâu hơn tại [kiến trúc và các quyết định thiết kế](architecture.md) và [ERD](erd.md).
-
-## 3. API và quyền truy cập
-
-Sau khi chạy stack:
-
-- Swagger UI: <http://localhost:8000/docs>
-- OpenAPI JSON: <http://localhost:8000/openapi.json>
-- Health: <http://localhost:8000/health>
-- [Đặc tả và kịch bản test Swagger](api-spec.md#8-kiểm-thử-thủ-công-trên-swagger)
-
-Bản OpenAPI tĩnh đã commit tại [docs/openapi.json](openapi.json) để đọc contract mà không cần
-dựng stack. Sau khi đổi route hoặc schema, xuất lại bằng `uv run python -m scripts.export_openapi`;
-test sẽ fail nếu file commit bị lệch so với app.
-
-Nếu đổi `APP_PORT`, thay `8000` trong các URL bằng giá trị đó.
-
-| Method | Path | Quyền |
-|---|---|---|
-| GET | `/health` | Công khai |
-| POST | `/api/v1/auth/login` | Công khai; OAuth2 form, `username` chứa email |
-| GET | `/api/v1/auth/me` | User đã đăng nhập |
-| POST | `/api/v1/users` | Admin |
-| GET | `/api/v1/users` | Admin |
-| GET | `/api/v1/users/{id}` | Admin hoặc chính user |
-| DELETE | `/api/v1/users/{id}` | Admin |
-| POST | `/api/v1/face-profiles` | User đã đăng nhập; profile luôn thuộc current user |
-| GET | `/api/v1/face-profiles` | Admin xem/lọc tất cả; user chỉ thấy của mình |
-| DELETE | `/api/v1/face-profiles/{id}` | Admin hoặc chủ profile |
-| POST | `/api/v1/checkins` | Công khai; nhận JPEG/PNG multipart field `image` |
-| GET | `/api/v1/checkins` | Admin xem/lọc tất cả; user chỉ thấy lịch sử của mình |
-| GET | `/api/v1/checkins/{id}` | Admin hoặc user của record |
-| DELETE | `/api/v1/checkins/{id}` | Admin |
-
-Trong Swagger, chọn **Authorize**, nhập email vào `username` và mật khẩu vào `password`. Lệnh tương
-đương (chỉ chạy thành công sau khi đã có user hợp lệ):
-
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/login \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  --data-urlencode 'username=admin.sample@example.test' \
-  --data-urlencode 'password=<MAT_KHAU_DO_BAN_CUNG_CAP>'
-```
-
-## 4. Chạy từ máy sạch bằng Docker Compose
-
-### Yêu cầu
+## Yêu cầu
 
 - Git.
-- Docker Engine/Desktop có Docker Compose v2 (`docker compose version`).
-- Tối thiểu vài GB dung lượng trống; dependency ML làm image lớn hơn web service thông thường.
-- Kết nối Internet để tải base image, dependency và model khi chưa có cache.
-- Build và chạy stack bằng Docker không cần Python hay PostgreSQL trên host. Bước seed và kiểm
-  thử ngoài container cần thêm Python 3.12 và uv; cách chuẩn bị nằm ở phần seed bên dưới.
+- Docker Engine hoặc Docker Desktop có Docker Compose v2.
+- Vài GB dung lượng trống: dependency ML làm image lớn hơn web service thông thường.
+- Internet ở lần chạy đầu để tải base image, dependency và model.
+- Bước 1–4 không cần Python hay PostgreSQL trên host. Seed, test và benchmark thử cần thêm
+  Python 3.12 và uv, cài ở [bước seed](#seed-dữ-liệu-mẫu).
 
-Các khối `bash` dùng với Bash trên Linux/macOS hoặc Git Bash trên Windows. Phần seed có thêm
-khối PowerShell tương đương cho Windows.
+```bash
+git --version
+docker compose version
+```
 
-### Clone và cấu hình
+## Clone và cấu hình
 
 ```bash
 git clone --branch main https://github.com/thanhphu25/face-checkin-service.git
 cd face-checkin-service
+git rev-parse HEAD
 cp .env.example .env
 docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-Mã nguồn bàn giao nằm trên nhánh `main` của GitHub. Khi bắt đầu Phase 2, ghi lại commit bằng
-`git rev-parse HEAD` để xác định bản gốc dùng cho thay đổi và so sánh benchmark.
+Mở `.env` và sửa:
 
-Điền kết quả lệnh cuối vào `JWT_SECRET` trong `.env`, rồi đổi `POSTGRES_PASSWORD`. Không commit
-`.env`. Nếu host đang dùng các cổng mặc định, đổi `APP_PORT` hoặc `POSTGRES_PORT`.
+1. `JWT_SECRET`: dán chuỗi do lệnh cuối sinh ra.
+2. `POSTGRES_PASSWORD`: đặt mật khẩu riêng. Nên chỉ dùng chữ, số, `-` và `_` để không phải
+   percent-encode khi đưa vào URL ở bước seed.
+3. Nếu cổng `8000` hoặc `5432` trên host đã bận, đổi `APP_PORT` hoặc `POSTGRES_PORT`. Khi đó thay
+   cổng tương ứng trong mọi URL và lệnh bên dưới.
 
-### Cách đóng gói ứng dụng
+Không commit `.env`. Ghi lại kết quả `git rev-parse HEAD`: đây là commit gốc dùng để đối chiếu khi
+so sánh benchmark Phase 2.
 
-`Dockerfile` xây image qua hai giai đoạn, đều dùng Python 3.12 slim:
+`DATABASE_URL` (SQLite) trong `.env` chỉ dùng khi chạy ngoài Compose; Compose tự tạo URL PostgreSQL
+cho container. Danh sách biến đầy đủ ở [tham chiếu cấu hình](#biến-môi-trường).
 
-| Giai đoạn | Công việc và lý do |
-|---|---|
-| `builder` | Dùng uv cài dependency theo `uv.lock` bằng `uv sync --frozen`, rồi cài ứng dụng vào `.venv`. Dependency được cài trước khi copy code để tận dụng layer cache khi chỉ sửa mã nguồn; cache của uv giúp giảm tải lại package. |
-| `runtime` | Copy `.venv`, code ứng dụng và migration; cài `libgl1`/`libglib2.0-0` cho xử lý ảnh. Loại ảnh mẫu và dữ liệu phụ không cần khi chạy để giảm kích thước; chạy bằng user `app` UID 10001, khởi động Uvicorn ở cổng 8000 với một worker. |
-
-`.dockerignore` loại `.env`, database local, model cache và các thư mục không cần khỏi build
-context. Runtime image chứa thành phần phục vụ API và migration; seed/test chạy từ checkout trên
-host. Compose đọc `.env` trên host, truyền các biến đã khai báo vào container và tạo `DATABASE_URL`
-PostgreSQL riêng; giá trị SQLite trong `.env.example` phục vụ chạy ngoài Compose.
-
-### Build, migration và khởi động
+## Build và khởi động
 
 ```bash
 docker compose config --quiet
 docker compose build
 docker compose up -d --wait
 docker compose ps -a
-```
-
-`config --quiet` kiểm tra cấu hình sau khi thay biến môi trường. `build` tạo image dùng chung cho
-`app` và `migrate`. `up` chờ PostgreSQL healthy, chạy một container `migrate` với
-`alembic upgrade head`, rồi mới khởi động app. `migrate` kết thúc với exit code 0 là trạng thái đúng.
-
-Các container kết nối database qua hostname `postgres:5432` trong mạng Compose. Client trên host
-gọi API qua `localhost:APP_PORT`; công cụ seed trên host kết nối DB qua `localhost:POSTGRES_PORT`.
-
-| Volume | Điểm mount trong container | Dữ liệu được giữ |
-|---|---|---|
-| `postgres_data` | `/var/lib/postgresql/data` | Tài khoản, hồ sơ embedding, lịch sử và phiên bản migration |
-| `insightface_models` | `/home/app/.insightface` | Model ONNX đã tải; mặc định ở `models/buffalo_s/` |
-
-Rebuild hoặc tạo lại container vẫn dùng các volume này. `docker compose down` giữ volume;
-`down -v` xóa cả dữ liệu DB và model cache của project được chọn.
-
-Kiểm tra và xem log:
-
-```bash
-curl http://localhost:8000/health
-curl -fsS -o /dev/null http://localhost:8000/docs
 docker compose logs migrate
-docker compose logs --tail=100 app postgres
 ```
 
-Khi cập nhật code hoặc thêm migration, build lại image để container nhận được file mới:
+| Lệnh | Tác dụng |
+|---|---|
+| `config --quiet` | Kiểm tra cấu hình sau khi thay biến; báo lỗi nếu thiếu `JWT_SECRET` hoặc `POSTGRES_PASSWORD` |
+| `build` | Build một image dùng chung cho `app` và `migrate` |
+| `up -d --wait` | Chờ `postgres` healthy, chạy `migrate` (`alembic upgrade head`), rồi khởi động `app` và chờ healthcheck |
+| `ps -a`, `logs migrate` | Xác nhận trạng thái container và kết quả migration |
 
-```bash
-docker compose build
-docker compose run --rm migrate
-docker compose up -d --wait app
-```
+**Kết quả đúng:** `postgres` và `app` ở trạng thái `running (healthy)`; `migrate` ở trạng thái
+`exited (0)`. Container `migrate` chạy một lần rồi kết thúc là bình thường.
 
-### Chuẩn bị model trước khi thử API
+`up --wait` thành công chỉ xác nhận `/health` trả lời, chưa xác nhận model nhận diện đã sẵn sàng.
+Làm tiếp bước chuẩn bị model.
 
-Model chưa được tải sẵn trong image. Lần đầu dependency `get_embedder` được gọi, InsightFace tải
-model từ GitHub nếu chưa có cache, rồi ONNX Runtime nạp model vào RAM. Dependency này hiện dùng
-chung cho các route face-profile/check-in, kể cả GET/DELETE. Vì vậy request đầu có thể chậm hoặc
-lỗi nếu mạng tải model hay quyền ghi cache có vấn đề.
+## Chuẩn bị model
 
-Có thể tải và kiểm tra model ngay sau khi stack chạy:
+Image không chứa sẵn model. Lần đầu dependency `get_embedder` được gọi, InsightFace tải model
+`buffalo_s` từ GitHub vào volume `insightface_models`, rồi ONNX Runtime nạp model vào RAM. Mọi
+route face-profile/check-in, kể cả GET/DELETE, đều kích hoạt bước này, nên request đầu có thể chậm
+hoặc lỗi nếu chưa tải trước.
 
 ```bash
 docker compose exec app python -c "from app.api.deps import get_embedder; get_embedder(); print('Model ready')"
 ```
 
-Lệnh này chạy trong tiến trình riêng, chuẩn bị file trong volume; request đầu của Uvicorn vẫn
-cần nạp model vào RAM. Sau đó model được tái sử dụng trong từng tiến trình. `/health` chỉ kiểm
-tra handler HTTP, nên `up --wait` thành công chưa xác nhận model đã sẵn sàng; tiếp tục thử đăng
-ký mặt/điểm danh theo [kịch bản Swagger](api-spec.md#8-kiểm-thử-thủ-công-trên-swagger).
+**Kết quả đúng:** in ra `Model ready`. Lệnh chạy trong tiến trình riêng nên chỉ tạo cache trong
+volume; request đầu tới Uvicorn vẫn mất thêm thời gian nạp model vào RAM, các request sau dùng lại.
 
-### Seed dữ liệu mẫu
+## Seed dữ liệu mẫu
 
-Stack vừa dựng có schema nhưng chưa có tài khoản nào. `scripts/seed.py` tạo admin mẫu, user mẫu, một
-face profile thật và ba bản ghi lịch sử (`success`, `unmatched`, `no_face`). Script idempotent: chạy
-lại không nhân đôi dữ liệu.
+Stack vừa dựng có schema nhưng chưa có tài khoản. `scripts/seed.py` tạo:
 
-Seed chạy từ môi trường dev trên host, không chạy trong container: ảnh khuôn mặt mẫu lấy từ package
-InsightFace đã cài, còn runtime image cố ý loại bỏ `scripts/` và thư mục ảnh đó. Compose đã publish
-cổng PostgreSQL nên host kết nối thẳng vào database của stack.
+- admin mẫu và user mẫu (xem [tài khoản mẫu](#tài-khoản-mẫu));
+- một face profile từ ảnh mẫu;
+- ba bản ghi lịch sử `success`, `unmatched` và `no_face`.
 
-Trên host, cài Python 3.12 và đưa lệnh `python` vào PATH. Nếu chưa có uv, cài bằng pip của Python
-đó, rồi chuẩn bị dependency từ thư mục gốc repo:
+Script idempotent: chạy lại không nhân đôi dữ liệu và giữ nguyên mật khẩu đã có.
+
+Seed chạy trên host, không chạy trong container: ảnh mẫu lấy từ package InsightFace cài trên host,
+còn runtime image không chứa `scripts/`. Host kết nối PostgreSQL của stack qua cổng `POSTGRES_PORT`
+mà Compose publish.
+
+### 1. Chuẩn bị Python và uv (một lần)
 
 ```bash
 python --version  # cần Python 3.12.x
@@ -230,71 +122,139 @@ uv --version
 uv sync --python 3.12 --frozen --extra dev
 ```
 
-Script đọc `JWT_SECRET` từ `.env`. Thay `<POSTGRES_PASSWORD>` trong URL bên dưới bằng mật khẩu đã
-đặt; nếu đổi user, tên DB hoặc cổng trong Compose thì sửa URL tương ứng. `--database-url` trỏ
-seed vào PostgreSQL của stack, thay cho SQLite mặc định trong `.env`. Mật khẩu có ký tự đặc biệt
-trong URL cần percent-encode.
+### 2. Chạy seed
 
-Chạy **một** trong hai khối sau. Với Bash:
+Điền bốn giá trị đầu cho khớp với `.env`. Seed tự đọc `JWT_SECRET` từ `.env`; `--database-url` trỏ
+seed vào PostgreSQL của stack thay cho SQLite mặc định. Mật khẩu có ký tự đặc biệt cần
+percent-encode trong URL. Chạy **một** trong hai khối sau.
+
+Bash:
 
 ```bash
+pg_user=app                        # POSTGRES_USER
+pg_password='<POSTGRES_PASSWORD>'  # POSTGRES_PASSWORD
+pg_port=5432                       # POSTGRES_PORT
+pg_db=facecheckin                  # POSTGRES_DB
 export SEED_ADMIN_PASSWORD="$(uv run python -c 'import secrets; print(secrets.token_urlsafe(24))')"
 export SEED_USER_PASSWORD="$(uv run python -c 'import secrets; print(secrets.token_urlsafe(24))')"
-seed_database_url="postgresql+psycopg://app:<POSTGRES_PASSWORD>@localhost:5432/facecheckin"
-uv run python -m scripts.seed --database-url "$seed_database_url"
+uv run python -m scripts.seed \
+  --database-url "postgresql+psycopg://${pg_user}:${pg_password}@localhost:${pg_port}/${pg_db}"
+echo "admin: $SEED_ADMIN_PASSWORD"
+echo "user:  $SEED_USER_PASSWORD"
 ```
 
-Với PowerShell:
+PowerShell:
 
 ```powershell
+$pgUser = "app"                        # POSTGRES_USER
+$pgPassword = "<POSTGRES_PASSWORD>"    # POSTGRES_PASSWORD
+$pgPort = 5432                         # POSTGRES_PORT
+$pgDb = "facecheckin"                  # POSTGRES_DB
 $env:SEED_ADMIN_PASSWORD = uv run python -c "import secrets; print(secrets.token_urlsafe(24))"
 $env:SEED_USER_PASSWORD = uv run python -c "import secrets; print(secrets.token_urlsafe(24))"
-$seedDatabaseUrl = "postgresql+psycopg://app:<POSTGRES_PASSWORD>@localhost:5432/facecheckin"
-uv run python -m scripts.seed --database-url $seedDatabaseUrl
+uv run python -m scripts.seed --database-url "postgresql+psycopg://${pgUser}:${pgPassword}@localhost:${pgPort}/${pgDb}"
+"admin: $env:SEED_ADMIN_PASSWORD"
+"user:  $env:SEED_USER_PASSWORD"
 ```
 
-Ghi lại hai mật khẩu vừa sinh ở nơi an toàn — chúng chỉ tồn tại trong shell của bạn, repo không lưu.
-Chạy lại seed giữ nguyên tài khoản và mật khẩu đã có. Model của seed nằm trong `~/.insightface`
-của user trên host, tách khỏi volume model của app; chuẩn bị model trong container chưa tạo cache
-cho host và ngược lại.
+**Lưu hai mật khẩu vừa in ở nơi an toàn.** Chúng chỉ tồn tại trong shell hiện tại, repo không lưu.
+Seed yêu cầu mật khẩu tối thiểu 12 ký tự, chặt hơn mức 8 ký tự của API tạo user.
 
-Thêm `--skip-face-profile` vào lệnh seed nếu chỉ cần tài khoản và lịch sử mẫu, rồi đăng ký mặt qua
-Swagger. Nếu DB chưa có profile, điểm danh bằng ảnh hợp lệ có một mặt sẽ trả `unmatched` sau khi
-model phía API đã nạp thành công.
+Tùy chọn:
 
-### Xử lý lỗi khi dựng lần đầu
+- Thêm `--skip-face-profile` nếu chỉ cần tài khoản và lịch sử mẫu, rồi tự đăng ký mặt qua Swagger.
+  Khi DB chưa có profile, check-in bằng ảnh hợp lệ có một mặt sẽ trả `unmatched`.
+- Model của seed nằm trong `~/.insightface` trên host, tách khỏi volume model của app. Chuẩn bị model
+  ở một bên không tạo cache cho bên kia.
 
-| Biểu hiện | Cách kiểm tra |
+## Kiểm tra sau khi dựng
+
+Chạy trong cùng shell vừa seed để dùng lại biến `SEED_ADMIN_PASSWORD`:
+
+```bash
+curl http://localhost:8000/health
+curl -fsS -o /dev/null http://localhost:8000/docs && echo "Swagger OK"
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'username=admin.sample@example.test' \
+  --data-urlencode "password=$SEED_ADMIN_PASSWORD"
+```
+
+**Kết quả đúng:** health trả `{"status":"ok"}`, dòng thứ hai in `Swagger OK`, login trả JSON có
+`access_token` và `"token_type":"bearer"`.
+
+Sau đó mở Swagger UI tại <http://localhost:8000/docs>, bấm **Authorize** (email vào `username`,
+mật khẩu vào `password`) và chạy
+[kịch bản kiểm thử thủ công](api-spec.md#8-kiểm-thử-thủ-công-trên-swagger).
+
+| Địa chỉ | Nội dung |
 |---|---|
-| Compose báo thiếu `JWT_SECRET`/`POSTGRES_PASSWORD` | Điền `.env` ở thư mục gốc và chạy lại `docker compose config --quiet`. |
-| App chưa khởi động, `migrate` có exit code khác 0 | Xem `docker compose logs migrate postgres`; xử lý kết nối/schema trước khi chạy lại migration. |
-| Cổng đã được sử dụng | Đổi `APP_PORT`/`POSTGRES_PORT`, tạo lại container và dùng cổng mới trong URL API/seed. |
-| Health trả 200 nhưng route khuôn mặt chậm hoặc lỗi | Xem `docker compose logs --tail=100 app`, chạy lệnh kiểm tra model ở trên; kiểm tra Internet và quyền ghi volume model. |
-| Seed không kết nối DB | Kiểm tra PostgreSQL đang chạy, mật khẩu và cổng host trong `--database-url`; hostname `postgres` chỉ dùng giữa các container. |
+| <http://localhost:8000/docs> | Swagger UI |
+| <http://localhost:8000/openapi.json> | OpenAPI runtime; bản tĩnh đã commit ở [openapi.json](openapi.json) |
+| <http://localhost:8000/health> | Health check, chỉ kiểm tra handler HTTP |
 
-### Dừng và dọn đúng phạm vi
+Danh sách endpoint, quyền và mã lỗi nằm trong [api-spec.md](api-spec.md).
 
-Giữ dữ liệu PostgreSQL/model cache cho lần chạy sau:
+## Cập nhật code hoặc migration
+
+Container chỉ nhận code mới sau khi build lại image. Chạy `migrate` trước để áp dụng migration mới
+(nếu có), rồi khởi động lại app:
+
+```bash
+git pull
+docker compose build
+docker compose run --rm migrate
+docker compose up -d --wait app
+```
+
+Khi đổi route hoặc schema API, xuất lại OpenAPI tĩnh và commit cùng thay đổi. Test
+`tests/api/test_openapi_export.py` sẽ fail nếu `docs/openapi.json` lệch so với app.
+
+```bash
+uv run python -m scripts.export_openapi
+```
+
+## Xử lý sự cố
+
+| Biểu hiện | Cách kiểm tra và xử lý |
+|---|---|
+| Compose báo thiếu `JWT_SECRET`/`POSTGRES_PASSWORD` | Điền `.env` ở thư mục gốc, chạy lại `docker compose config --quiet`. |
+| App không khởi động, `migrate` thoát với mã khác 0 | Xem `docker compose logs migrate postgres`; xử lý lỗi kết nối/schema rồi chạy lại `docker compose run --rm migrate`. |
+| Cổng đã được sử dụng | Đổi `APP_PORT`/`POSTGRES_PORT` trong `.env`, chạy `docker compose up -d --wait`, dùng cổng mới trong URL API và URL seed. |
+| Health trả 200 nhưng route khuôn mặt chậm hoặc lỗi | Chạy lệnh [chuẩn bị model](#chuẩn-bị-model), xem `docker compose logs --tail=100 app`; kiểm tra Internet và quyền ghi volume model. |
+| Seed không kết nối được DB | Kiểm tra PostgreSQL đang chạy (`docker compose ps`), mật khẩu và cổng host trong `--database-url`. Hostname `postgres` chỉ dùng giữa các container, từ host phải dùng `localhost`. |
+| Seed báo mật khẩu quá ngắn | `SEED_ADMIN_PASSWORD`/`SEED_USER_PASSWORD` chưa được đặt hoặc ngắn hơn 12 ký tự trong shell hiện tại. |
+| Login trả `401` | Sai email/mật khẩu, hoặc đang dùng shell khác nên biến mật khẩu seed rỗng. |
+
+Xem log:
+
+```bash
+docker compose logs migrate
+docker compose logs --tail=100 app postgres
+```
+
+## Dừng và dọn dữ liệu
+
+Dừng stack, giữ dữ liệu PostgreSQL và model cache cho lần chạy sau:
 
 ```bash
 docker compose down
 ```
 
-Xóa cả dữ liệu **chỉ của project hiện tại**:
+Xóa cả dữ liệu, **chỉ của project hiện tại**:
 
 ```bash
 docker compose ls
 docker compose -p face-checkin-service down -v
 ```
 
-Trước `down -v`, luôn đối chiếu project name trong `docker compose ls`; không dùng lệnh xóa volume
-toàn cục. Khi kiểm chứng/CI, đặt project riêng, ví dụ
+Trước khi chạy `down -v`, luôn đối chiếu tên project trong `docker compose ls`; không dùng lệnh xóa
+volume toàn cục. Khi kiểm chứng hoặc chạy CI, đặt project riêng, ví dụ
 `docker compose -p facecheckin_verify ...`, và chỉ `down -v` đúng tên đó.
 
-## 5. Test, quality gate và benchmark
+## Test và quality gate
 
-Chạy ngoài Docker bằng Python 3.12 và [uv](https://docs.astral.sh/uv/), dùng môi trường host đã
-chuẩn bị ở phần seed:
+Chạy ngoài Docker bằng môi trường Python/uv đã chuẩn bị ở [bước seed](#1-chuẩn-bị-python-và-uv-một-lần):
 
 ```bash
 uv sync --python 3.12 --frozen --extra dev
@@ -305,8 +265,8 @@ uv run lint-imports
 git diff --check
 ```
 
-Repository test luôn chạy SQLite. PostgreSQL cases ghi rõ `skipped` nếu không cấp database; để bắt
-buộc chạy thật như CI:
+Repository test luôn chạy trên SQLite. Các case PostgreSQL được báo `skipped` nếu không cấp
+database; để bắt buộc chạy thật như CI:
 
 ```bash
 POSTGRES_TEST_DATABASE_URL='postgresql+psycopg://USER:PASSWORD@127.0.0.1:5432/facecheckin_test' \
@@ -315,63 +275,64 @@ JWT_SECRET=local-test-only \
 uv run pytest -q tests/integration
 ```
 
-Tên database PostgreSQL test bắt buộc chứa `test`. Hãy tạo database/container riêng, chạy migration
-và drop riêng nó; không trỏ lệnh này vào database dev.
+Tên database test bắt buộc chứa `test`. Tạo database hoặc container riêng, chạy migration và drop
+riêng nó; không trỏ lệnh này vào database dev.
 
-### Baseline Pha 1
+## Benchmark
 
-Đo ngày 2026-10-27 trên Kaggle CPU 4 core, commit `3503b24`, Uvicorn một worker, ngoài Compose.
-Notebook: [Face Check-in Benchmark trên Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark).
-Bộ hiện hành có thời điểm metadata 10:53:08 (SQLite) và 10:55:26 (PostgreSQL), giờ Việt Nam.
-Cả 8.480 request ở 16 mức đo trên SQLite/PostgreSQL đều không lỗi HTTP. PostgreSQL check-in đạt
-6,424–10,140 req/s khi concurrency tăng từ 1 lên 8; p95 tăng từ 167,79 lên 874,75 ms.
-Baseline chỉ có một face profile, một lượt mỗi cấu hình; chưa đại diện cho dữ liệu lớn hoặc
-độ chính xác nhận diện.
-
-[Báo cáo benchmark](benchmark-phase1.md) chứa bảng số liệu, giới hạn, các cell Kaggle và điều
-kiện so sánh trước/sau. Số liệu gốc nằm tại [docs/benchmark/](benchmark/).
-
-## 6. Thiết kế và tài liệu theo đề bài
-
-[Kiến trúc và quyết định thiết kế](architecture.md) có sơ đồ tổng quát, các luồng nghiệp vụ
-và lý do lựa chọn database, JWT, embedding, hạ tầng và phương pháp benchmark.
-
-| Nội dung theo yêu cầu | Tài liệu / bằng chứng |
+| Mục đích | Hướng dẫn |
 |---|---|
-| Đề bài hai pha | [docs/2026.md](2026.md) |
-| Phân tầng API, nghiệp vụ, dữ liệu; Repository/ORM | [Kiến trúc](architecture.md), [ERD](erd.md), import-linter và integration test |
-| REST JSON, POST/GET/DELETE; đăng nhập và GET/POST có xác thực | Danh mục API ở trên, [API spec và test Swagger](api-spec.md), [OpenAPI](openapi.json) |
-| Xác thực tập trung qua middleware | [Quyết định auth](architecture.md#auth), test middleware/RBAC |
-| Đóng gói và dựng Docker | Mục 4, Dockerfile/Compose và CI |
-| Kiểm thử tải trên Kaggle CPU | [Notebook Kaggle](https://www.kaggle.com/code/tphu25/face-checkin-benchmark), [kết quả và cách tái lập](benchmark-phase1.md), [CSV/metadata](benchmark/) |
-| Cải tiến có lý do và đánh giá trước/sau trên cùng phần cứng | [Đánh giá và hướng Pha 2](phase-2-improvements.md); phần kết quả sau cải tiến chưa có |
+| Thử harness trên máy thường (~1 phút, không dùng làm baseline) | [Kiểm tra harness không cần Kaggle](phase-1-benchmark.md#kiểm-tra-harness-không-cần-kaggle) |
+| Chạy lại baseline trên Kaggle CPU | [Chạy lại trên Kaggle CPU](phase-1-benchmark.md#7-chạy-lại-trên-kaggle-cpu) |
+| So sánh trước/sau cho Phase 2 | [Đọc kết quả và so sánh trước/sau](phase-1-benchmark.md#8-đọc-kết-quả-và-so-sánh-trướcsau) |
 
-## 7. Biến môi trường và tài khoản mẫu
+## Tham chiếu cấu hình
+
+### Biến môi trường
 
 | Biến | Bắt buộc / mặc định | Mục đích |
 |---|---|---|
-| `DATABASE_URL` | SQLite local mặc định; Compose tự tạo URL PostgreSQL | SQLAlchemy connection URL |
-| `POSTGRES_DB` | `facecheckin` | Database Compose |
+| `DATABASE_URL` | SQLite local; Compose tự tạo URL PostgreSQL | SQLAlchemy connection URL khi chạy ngoài Compose |
+| `POSTGRES_DB` | `facecheckin` | Tên database Compose |
 | `POSTGRES_USER` | `app` | User PostgreSQL Compose |
-| `POSTGRES_PASSWORD` | Bắt buộc với Compose | Password PostgreSQL; dùng giá trị riêng |
-| `POSTGRES_PORT` | `5432` | Cổng PostgreSQL trên host |
+| `POSTGRES_PASSWORD` | Bắt buộc với Compose | Mật khẩu PostgreSQL; dùng giá trị riêng |
+| `POSTGRES_PORT` | `5432` | Cổng PostgreSQL publish ra host |
 | `JWT_SECRET` | Bắt buộc | Secret ký JWT; phải sinh ngẫu nhiên |
-| `JWT_ALGORITHM` | `HS256` | Thuật toán JWT được cho phép |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Tuổi access token |
-| `SIMILARITY_THRESHOLD` | `0.40` | Ngưỡng cosine tại thời điểm check-in |
+| `JWT_ALGORITHM` | `HS256` | Thuật toán JWT được chấp nhận |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Thời hạn access token |
+| `SIMILARITY_THRESHOLD` | `0.40` | Ngưỡng cosine lúc check-in, được lưu cùng mỗi record |
 | `EMBEDDING_MODEL` | `buffalo_s` | Model ghi cùng face profile |
-| `MAX_UPLOAD_MB` | `5` | Giới hạn JPEG/PNG trước inference |
-| `APP_PORT` | `8000` | Cổng HTTP trên host |
+| `MAX_UPLOAD_MB` | `5` | Dung lượng tối đa ảnh JPEG/PNG trước inference |
+| `APP_PORT` | `8000` | Cổng HTTP publish ra host |
 | `APP_IMAGE` | `face-checkin-service:local` | Tên/tag image do Compose build |
-| `SEED_ADMIN_PASSWORD` | Bắt buộc khi tạo admin mẫu lần đầu | Biến môi trường của tiến trình seed trên host, tối thiểu 12 ký tự |
-| `SEED_USER_PASSWORD` | Bắt buộc khi tạo user mẫu lần đầu | Biến môi trường của tiến trình seed trên host, tối thiểu 12 ký tự |
+| `SEED_ADMIN_PASSWORD` | Bắt buộc khi tạo admin mẫu lần đầu | Biến của tiến trình seed trên host, tối thiểu 12 ký tự |
+| `SEED_USER_PASSWORD` | Bắt buộc khi tạo user mẫu lần đầu | Biến của tiến trình seed trên host, tối thiểu 12 ký tự |
 
-`scripts/seed.py` tạo đúng hai tài khoản dưới đây. Email là cố định và nằm trong repo; mật khẩu do
-người chạy cung cấp qua biến môi trường, tối thiểu 12 ký tự, và không bao giờ được commit.
+### Service, cổng và volume
+
+| Service | Vai trò | Truy cập |
+|---|---|---|
+| `postgres` | PostgreSQL 16 | Container: `postgres:5432`; host: `localhost:POSTGRES_PORT` |
+| `migrate` | Chạy `alembic upgrade head` một lần rồi thoát | Không publish cổng |
+| `app` | FastAPI/Uvicorn một worker, user `app` UID 10001 | Host: `localhost:APP_PORT` |
+
+| Volume | Điểm mount trong container | Dữ liệu được giữ |
+|---|---|---|
+| `postgres_data` | `/var/lib/postgresql/data` | Tài khoản, hồ sơ embedding, lịch sử và phiên bản migration |
+| `insightface_models` | `/home/app/.insightface` | Model ONNX đã tải, mặc định ở `models/buffalo_s/` |
+
+Rebuild hoặc tạo lại container vẫn dùng các volume này. `docker compose down` giữ volume;
+`down -v` xóa cả dữ liệu DB và model cache của project được chọn. Cách đóng gói image được giải
+thích ở [quyết định Infrastructure](architecture.md#infrastructure).
+
+### Tài khoản mẫu
+
+`scripts/seed.py` tạo đúng hai tài khoản. Email cố định trong repo; mật khẩu do người chạy cung cấp
+qua biến môi trường và không bao giờ được commit.
 
 | Tên | Email | Role | Mật khẩu |
 |---|---|---|---|
-| Admin mẫu | `admin.sample@example.test` | `admin` | `SEED_ADMIN_PASSWORD`, người chạy tự sinh |
-| User mẫu | `user.sample@example.test` | `user` | `SEED_USER_PASSWORD`, người chạy tự sinh |
+| Admin mẫu | `admin.sample@example.test` | `admin` | `SEED_ADMIN_PASSWORD` |
+| User mẫu | `user.sample@example.test` | `user` | `SEED_USER_PASSWORD` |
 
 Không commit password, JWT, token, ảnh mặt, `.env`, database, model cache hay file ONNX tải về.

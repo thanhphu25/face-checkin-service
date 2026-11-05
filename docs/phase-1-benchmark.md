@@ -78,7 +78,7 @@ p95 lần lượt là 104,8 và 128,04 ms. Các chênh lệch chỉ mô tả lư
   Chưa có phép đo tách riêng để kết luận tỷ trọng chi phí inference, matching hay database.
 - History có throughput cao hơn check-in; trong lượt này PostgreSQL giữ throughput tốt hơn SQLite
   khi tăng từ concurrency 2 lên 8. Chưa đủ số lượt để kết luận ưu thế ổn định giữa hai backend.
-- Bộ đo đáp ứng phần kiểm thử tải trên Kaggle CPU của [Pha 1](2026.md). Nó chưa đánh giá khả năng
+- Bộ đo đáp ứng phần kiểm thử tải trên Kaggle CPU của [Pha 1](sa-requirements-2026.md). Nó chưa đánh giá khả năng
   mở rộng tập profile, độ chính xác nhận diện hay triển khai nhiều worker.
 - Nếu triển khai Pha 2, cần đo lại cả bản gốc và phương án trong cùng điều kiện. Các hướng khảo sát
   nằm tại [đề xuất Pha 2](phase-2-improvements.md).
@@ -223,7 +223,7 @@ Mỗi dòng CSV là một scenario/mức concurrency. Throughput tính request/g
 nearest-rank. CPU máy là 0–100%, CPU server tính theo một core nên có thể vượt 100%.
 Harness bỏ warm-up, chờ khoảng lặng mặc định 2 giây; cửa sổ CPU dưới 0,5 giây được báo thiếu.
 
-Để đáp ứng yêu cầu đánh giá trên một cấu hình phần cứng trong [đề bài](2026.md):
+Để đáp ứng yêu cầu đánh giá trên một cấu hình phần cứng trong [đề bài](sa-requirements-2026.md):
 
 1. Dùng cùng phiên/cấu hình Kaggle; đối chiếu cpu_count/platform trong metadata.
 2. Giữ cùng model, ảnh, số profile, dữ liệu lịch sử, threshold, workload và tham số tải.

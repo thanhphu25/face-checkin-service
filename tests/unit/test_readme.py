@@ -18,7 +18,7 @@ def test_readme_covers_compose_auth_quality_and_phase_boundaries() -> None:
         "OAuth2 form",
         "/api/v1/auth/login",
         "uv sync --python 3.12 --frozen --extra dev",
-        "docs/benchmark-phase1.md",
+        "docs/phase-1-benchmark.md",
         "docs/phase-2-improvements.md",
         "scripts/seed.py",
         "docs/running.md",

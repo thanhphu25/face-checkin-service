@@ -166,7 +166,7 @@ vào OpenAPI là một hạng mục có thể cải tiến sau review.
 
 ## 8. Kiểm thử thủ công trên Swagger
 
-Dựng stack và seed theo [hướng dẫn vận hành](running.md#4-chạy-từ-máy-sạch-bằng-docker-compose).
+Dựng stack theo [hướng dẫn vận hành](running.md#thứ-tự-thực-hiện), bước 1–5.
 Có thể dùng seed chỉ tài khoản với `--skip-face-profile`, rồi đăng ký mặt trực tiếp. Mật khẩu
 lấy từ `SEED_ADMIN_PASSWORD`/`SEED_USER_PASSWORD` của người chạy, không có mật khẩu demo cố định.
 
