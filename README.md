@@ -206,3 +206,7 @@ toàn bộ tài liệu nằm ở [phụ lục](#phụ-lục-danh-mục-tài-li�
 | [Baseline Phase 1](docs/phase-1-benchmark.md) | Điều kiện đo, số liệu Kaggle CPU, giới hạn và cách chạy lại hoặc so sánh trước/sau | Đánh giá hiệu năng hoặc chuẩn bị đo Phase 2 |
 | [Số liệu gốc](docs/benchmark/) | CSV và metadata của lượt đo baseline | Kiểm tra lại số liệu trong báo cáo |
 | [Phân tích cải tiến Phase 2](docs/phase-2-improvements.md) | Vấn đề V01–V09, hướng thử nghiệm, tiêu chí và quy trình đánh giá | Chọn và triển khai cải tiến Phase 2 |
+
+## Nghiệm thu Phase 2
+
+[Báo cáo Kaggle CPU](docs/phase2-kaggle.md) ghi các phép đo đã chạy, ngưỡng chấp nhận và trạng thái từng phép thử. [Notebook tái lập](docs/benchmark/phase2/kaggle-23020023.ipynb) dùng chung snapshot cho hai phiên bản.

@@ -1,0 +1,28 @@
+{
+  "expected": 6,
+  "actual": 6,
+  "audit_actual": 11,
+  "audit_expected": 11,
+  "warmup_ok": 5,
+  "warmup_expected": 5,
+  "statuses": {
+    "201": 6
+  },
+  "passed": true,
+  "errors": 0,
+  "timeouts": 0,
+  "http_errors": 0,
+  "body_errors": 0,
+  "cpu_system": null,
+  "cpu_process": null,
+  "rss_kib": null,
+  "rps": 85.639901266445,
+  "success_rps": 85.639901266445,
+  "transport": "httpx.MockTransport",
+  "app": null,
+  "runner": "b34aaa82e9d68298f3acf5481f241c5ed3c097f7",
+  "snapshot": "76b5ab1811368601dec8a285edb95d943c0b1946e4a3a0f6a2afc383dfc191b2",
+  "user": 7,
+  "profile": 9,
+  "concurrency": 2
+}
